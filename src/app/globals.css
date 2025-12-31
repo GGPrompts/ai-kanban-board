@@ -152,15 +152,17 @@
 
 /* Kanban specific */
 .kanban-column {
-  @apply glass-dark min-w-80 w-80 flex flex-col rounded-lg overflow-hidden;
+  @apply min-w-80 w-80 flex flex-col rounded-lg overflow-hidden;
+  @apply bg-black/40 backdrop-blur-md border border-white/10;
 }
 
 .kanban-card {
-  @apply glass cursor-grab transition-all duration-200;
+  @apply cursor-grab transition-all duration-200;
+  @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-lg;
 }
 
 .kanban-card:hover {
-  @apply border-glow;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
 }
 
 .kanban-card.dragging {
