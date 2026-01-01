@@ -114,7 +114,7 @@ export function TaskModal() {
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="flex-1 p-6">
+          <ScrollArea className="flex-1 min-h-0 p-6">
             {/* Details Tab */}
             <TabsContent value="details" className="mt-0 h-full">
               <AnimatePresence mode="wait">
