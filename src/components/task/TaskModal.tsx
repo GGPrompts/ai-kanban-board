@@ -53,11 +53,11 @@ export function TaskModal() {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
-        className="!bg-zinc-900 border-white/10 sm:max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0"
+        className="!bg-zinc-900 border-white/10 sm:max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0 overflow-hidden"
         showCloseButton={true}
       >
         {/* Header */}
-        <DialogHeader className="p-6 pb-4 border-b border-white/10">
+        <DialogHeader className="p-6 pb-4 border-b border-white/10 shrink-0">
           <div className="flex items-start justify-between gap-4 pr-8">
             <div className="space-y-1 flex-1">
               <DialogTitle className="text-xl font-semibold text-zinc-100 terminal-glow">
@@ -91,7 +91,7 @@ export function TaskModal() {
 
         {/* Tabs */}
         <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-6 mt-4 bg-black/40 border border-white/10">
+          <TabsList className="mx-6 mt-4 bg-black/40 border border-white/10 shrink-0">
             <TabsTrigger value="details" className="gap-1.5">
               <FileText className="h-4 w-4" />
               Details
