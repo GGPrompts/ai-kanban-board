@@ -141,7 +141,7 @@ export function TaskModal() {
                   transition={{ duration: 0.2 }}
                   className="space-y-4"
                 >
-                  <div className="glass-dark overflow-hidden">
+                  <div className="glass-dark rounded-lg">
                     <TaskChat task={task} />
                   </div>
                   <TaskAISettings task={task} />
