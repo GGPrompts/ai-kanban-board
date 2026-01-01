@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { TaskDetailsForm } from "./TaskDetailsForm"
 import { TaskTimeline } from "./TaskTimeline"
 import { TaskChat } from "./TaskChat"
@@ -114,7 +113,7 @@ export function TaskModal() {
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="flex-1 min-h-0 p-6">
+          <div className="flex-1 min-h-0 p-6 overflow-y-auto">
             {/* Details Tab */}
             <TabsContent value="details" className="mt-0 h-full">
               <AnimatePresence mode="wait">
@@ -193,7 +192,7 @@ export function TaskModal() {
                 </motion.div>
               </AnimatePresence>
             </TabsContent>
-          </ScrollArea>
+          </div>
         </Tabs>
       </DialogContent>
     </Dialog>
