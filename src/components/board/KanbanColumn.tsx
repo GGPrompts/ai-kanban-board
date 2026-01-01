@@ -38,7 +38,10 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
           <h3 className="font-semibold text-white terminal-glow">
             {column.title}
           </h3>
-          <span className="text-sm text-white/60 bg-white/10 px-2 py-0.5 rounded-full">
+          <span
+            className="text-sm text-white/60 bg-white/10 px-2 py-0.5 rounded-full"
+            suppressHydrationWarning
+          >
             {tasks.length}
             {column.wipLimit && (
               <span className="text-white/40">/{column.wipLimit}</span>
