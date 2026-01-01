@@ -86,16 +86,16 @@ export function TaskAISettings({ task }: TaskAISettingsProps) {
               Agent
             </label>
             <Select
-              value={settings.agent || ""}
+              value={settings.agent || "_default"}
               onValueChange={(value) =>
-                handleChange({ agent: value || undefined })
+                handleChange({ agent: value === "_default" ? undefined : value })
               }
             >
               <SelectTrigger className="bg-black/40 border-white/10">
                 <SelectValue placeholder="Default agent" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Default</SelectItem>
+                <SelectItem value="_default">Default</SelectItem>
                 {isLoading ? (
                   <SelectItem value="loading" disabled>
                     <Loader2 className="h-3 w-3 animate-spin mr-2" />
