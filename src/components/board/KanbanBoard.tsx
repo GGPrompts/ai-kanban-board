@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -19,21 +19,62 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { motion } from 'framer-motion'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useBoardStore } from '@/lib/store'
 import { KanbanColumn } from './KanbanColumn'
+import { AddColumnButton } from './AddColumnButton'
 import { Task } from '@/types'
+import { cn } from '@/lib/utils'
 
 export function KanbanBoard() {
   const { getCurrentBoard, tasks, moveTask, reorderTasks, getTasksByColumn } = useBoardStore()
   const board = getCurrentBoard()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [hasMounted, setHasMounted] = useState(false)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(false)
 
   // Wait for hydration to complete before rendering dynamic content
   useEffect(() => {
     setHasMounted(true)
   }, [])
+
+  // Check scroll position for navigation buttons
+  const updateScrollButtons = useCallback(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    setCanScrollLeft(container.scrollLeft > 0)
+    setCanScrollRight(
+      container.scrollLeft < container.scrollWidth - container.clientWidth - 10
+    )
+  }, [])
+
+  useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+
+    updateScrollButtons()
+    container.addEventListener('scroll', updateScrollButtons)
+    window.addEventListener('resize', updateScrollButtons)
+
+    return () => {
+      container.removeEventListener('scroll', updateScrollButtons)
+      window.removeEventListener('resize', updateScrollButtons)
+    }
+  }, [updateScrollButtons, hasMounted])
+
+  // Scroll by one column width
+  const scroll = (direction: 'left' | 'right') => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    const scrollAmount = 360 // column width + gap
+    container.scrollBy({
+      left: direction === 'left' ? -scrollAmount : scrollAmount,
+      behavior: 'smooth',
+    })
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -144,40 +185,81 @@ export function KanbanBoard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="flex-1 gradient-bg p-6 overflow-x-auto"
+      className="flex-1 relative"
     >
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
-          <div className="flex gap-4 h-full">
-            {sortedColumns.map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                tasks={getTasksByColumn(column.id)}
-              />
-            ))}
-          </div>
-        </SortableContext>
-
-        <DragOverlay>
-          {activeTask && (
-            <div className="kanban-card p-3 rounded-lg opacity-90 rotate-3 scale-105">
-              <h4 className="text-sm font-medium text-white">{activeTask.title}</h4>
-              {activeTask.description && (
-                <p className="text-xs text-white/60 mt-1 line-clamp-2">
-                  {activeTask.description}
-                </p>
-              )}
-            </div>
+      {/* Scroll Left Button */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className={cn(
+            "absolute left-2 top-1/2 -translate-y-1/2 z-20",
+            "size-10 rounded-full glass-dark border border-zinc-700",
+            "flex items-center justify-center",
+            "text-zinc-400 hover:text-zinc-200 hover:border-teal-500/50",
+            "transition-all hover:scale-105 shadow-lg"
           )}
-        </DragOverlay>
-      </DndContext>
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Scroll Right Button */}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          className={cn(
+            "absolute right-2 top-1/2 -translate-y-1/2 z-20",
+            "size-10 rounded-full glass-dark border border-zinc-700",
+            "flex items-center justify-center",
+            "text-zinc-400 hover:text-zinc-200 hover:border-teal-500/50",
+            "transition-all hover:scale-105 shadow-lg"
+          )}
+        >
+          <ChevronRight className="h-5 w-5" />
+        </button>
+      )}
+
+      {/* Scrollable Board Area */}
+      <div
+        ref={scrollContainerRef}
+        className="h-full overflow-x-auto overflow-y-hidden px-6 py-4 scrollbar-visible"
+      >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+            <div className="flex gap-4 h-full pb-4">
+              {sortedColumns.map((column) => (
+                <KanbanColumn
+                  key={column.id}
+                  column={column}
+                  tasks={getTasksByColumn(column.id)}
+                />
+              ))}
+
+              {/* Add Column Button */}
+              <AddColumnButton />
+            </div>
+          </SortableContext>
+
+          <DragOverlay>
+            {activeTask && (
+              <div className="kanban-card p-3 rounded-lg opacity-90 rotate-3 scale-105">
+                <h4 className="text-sm font-medium text-white">{activeTask.title}</h4>
+                {activeTask.description && (
+                  <p className="text-xs text-white/60 mt-1 line-clamp-2">
+                    {activeTask.description}
+                  </p>
+                )}
+              </div>
+            )}
+          </DragOverlay>
+        </DndContext>
+      </div>
     </motion.div>
   )
 }

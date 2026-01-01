@@ -1,36 +1,98 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Agent Orchestrator
 
-## Getting Started
+AI Agent Orchestration Command Center - A workflow automation dashboard for managing Claude Code, Gemini, Codex, and other AI coding agents.
 
-First, run the development server:
+## Features
+
+### Mission Control Interface
+- **Command Bar** - Global view of all agents with live status indicators
+- **Agent Stations** - Columns act as workflow steps with assigned agents
+- **Live Activity** - Real-time agent status on cards without opening modals
+
+### Workflow Pipeline System
+- **Column-level Agent Assignment** - Assign AI agents to workflow steps
+- **Step Prompts** - Custom system prompts per workflow stage
+- **Auto-advance** - Tasks can auto-progress through the pipeline
+- **Visual Indicators** - Prompt badges, agent status, activity previews
+
+### Template Boards
+Pre-configured workflow templates with agents and prompts:
+- **Simple** - Basic 3-column kanban
+- **Standard** - Classic 5-column with review
+- **Feature Dev** - Full AI-assisted feature pipeline (7 steps, 5 AI)
+- **Bug Fix** - Bug investigation workflow (6 steps, 4 AI)
+- **Full Pipeline** - Complete 10-step workflow with all stages
+- **Documentation** - Docs writing workflow (6 steps, 4 AI)
+
+### Design System
+- Mission Control / Cyberpunk Terminal aesthetic
+- JetBrains Mono + Orbitron fonts
+- Glass morphism with CRT glow effects
+- Agent-specific color coding
+
+## Tech Stack
+
+- **Next.js 16** + React 19 + TypeScript
+- **Tailwind CSS v4** + shadcn/ui components
+- **@dnd-kit** - Drag and drop
+- **Framer Motion** - Animations
+- **Zustand** - State management
+
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:4242](http://localhost:4242)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/
+│   ├── page.tsx              # Main board view
+│   ├── layout.tsx            # Root layout with fonts
+│   ├── globals.css           # Mission Control theme
+│   └── api/chat/             # Claude CLI streaming
+├── components/
+│   ├── board/                # KanbanBoard, KanbanColumn, KanbanCard
+│   │   ├── CommandBar.tsx    # Global agent status bar
+│   │   ├── AddColumnButton.tsx # Workflow step presets
+│   │   ├── ColumnConfigDialog.tsx # Agent + prompt config
+│   │   └── BoardSettingsDialog.tsx
+│   ├── task/                 # TaskModal, TaskChat, TaskAISettings
+│   ├── sidebar/              # BoardList, CreateBoardDialog
+│   └── ui/                   # shadcn components
+├── lib/
+│   ├── store.ts              # Zustand state
+│   └── constants.ts          # Board templates
+└── types/                    # TypeScript definitions
+```
 
-## Learn More
+## Workflow Configuration
 
-To learn more about Next.js, take a look at the following resources:
+### Assigning Agents to Steps
+1. Click the bot icon in any column header
+2. Select an agent (Claude, Gemini, Codex, etc.)
+3. Open column menu (⋯) → "Configure Step" to add a prompt
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Creating Template Boards
+1. Click "+ New Board" in sidebar
+2. Choose a workflow template
+3. Preview the pipeline and AI steps
+4. Create - columns come pre-configured with agents and prompts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Agent Types Supported
+- Claude Code
+- Gemini CLI
+- OpenAI Codex
+- GitHub Copilot
+- Amp
+- Cursor AI
+- Custom
 
-## Deploy on Vercel
+## License
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT

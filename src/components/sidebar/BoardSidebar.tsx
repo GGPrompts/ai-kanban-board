@@ -2,61 +2,102 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PanelLeftClose, PanelLeft } from 'lucide-react'
+import { PanelLeftClose, PanelLeft, LayoutGrid } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BoardList } from './BoardList'
 import { CreateBoardDialog } from './CreateBoardDialog'
 import { cn } from '@/lib/utils'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export function BoardSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   return (
-    <>
+    <TooltipProvider>
       <AnimatePresence mode="wait">
         {isCollapsed ? (
           <motion.div
             key="collapsed"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 'auto', opacity: 1 }}
+            animate={{ width: 48, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 border-r border-white/10"
+            className="flex-shrink-0 border-r border-zinc-800 bg-zinc-900/50 flex flex-col items-center py-3 gap-2"
           >
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsCollapsed(false)}
-              className="m-2 hover:bg-white/10"
-              title="Expand sidebar"
-            >
-              <PanelLeft className="w-5 h-5 text-white/70" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsCollapsed(false)}
+                  className="hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
+                >
+                  <PanelLeft className="w-5 h-5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p className="text-xs">Expand sidebar</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <div className="h-px w-6 bg-zinc-800 my-1" />
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p className="text-xs">Boards</p>
+              </TooltipContent>
+            </Tooltip>
           </motion.div>
         ) : (
           <motion.aside
             key="expanded"
             initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 280, opacity: 1 }}
+            animate={{ width: 260, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'flex-shrink-0 glass-dark border-r border-white/10',
-              'flex flex-col h-full overflow-hidden'
+              'flex-shrink-0 border-r border-zinc-800 bg-zinc-900/50',
+              'flex flex-col h-full overflow-hidden relative'
             )}
           >
-            {/* Collapse Button */}
-            <div className="absolute top-2 right-2 z-10">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setIsCollapsed(true)}
-                className="hover:bg-white/10"
-                title="Collapse sidebar"
-              >
-                <PanelLeftClose className="w-4 h-4 text-white/70" />
-              </Button>
+            {/* Header with Collapse Button */}
+            <div className="flex items-center justify-between px-3 py-3 border-b border-zinc-800">
+              <div className="flex items-center gap-2">
+                <LayoutGrid className="w-4 h-4 text-teal-500" />
+                <span className="text-xs font-medium text-zinc-400 uppercase tracking-wider">
+                  Boards
+                </span>
+              </div>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsCollapsed(true)}
+                    className="h-7 w-7 hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300"
+                  >
+                    <PanelLeftClose className="w-4 h-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p className="text-xs">Collapse sidebar</p>
+                </TooltipContent>
+              </Tooltip>
             </div>
 
             <BoardList onNewBoard={() => setIsCreateDialogOpen(true)} />
@@ -68,6 +109,6 @@ export function BoardSidebar() {
         open={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
       />
-    </>
+    </TooltipProvider>
   )
 }

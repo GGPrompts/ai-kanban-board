@@ -96,12 +96,15 @@ export const useBoardStore = create<BoardState>()(
         const newBoard: Board = {
           id: generateId(),
           name,
-          description: `Created from ${template.name} template`,
+          description: template.description || `Created from ${template.name} template`,
           columns: template.columns.map((col, index) => ({
             id: generateId(),
             title: col.title,
             color: col.color,
             order: index,
+            // Include agent assignment and config from template
+            assignedAgent: col.agent,
+            agentConfig: col.agentConfig,
           })),
           settings: {
             theme: 'dark',

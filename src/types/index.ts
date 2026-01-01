@@ -1,4 +1,4 @@
-// AI Kanban Board Types
+// AI Kanban Board Types - Mission Control Theme
 
 export interface Board {
   id: string
@@ -17,10 +17,104 @@ export interface Column {
   order: number
   wipLimit?: number // Work-in-progress limit
   isCollapsed?: boolean
+
+  // Agent Station Configuration
+  assignedAgent?: AgentType // Agent assigned to this workflow step
+  agentConfig?: ColumnAgentConfig // Agent-specific configuration for this column
   autoAssign?: {
     agent?: AgentType
     priority?: Priority
   }
+}
+
+// Configuration for an agent assigned to a column/workflow step
+export interface ColumnAgentConfig {
+  systemPrompt?: string // Custom prompt for this workflow step
+  autoStart?: boolean // Auto-start agent when task enters column
+  workingDir?: string // Working directory for agent
+  permissionMode?: 'bypassPermissions' | 'plan' | 'default'
+  skills?: string[] // Skills to use (e.g., 'commit', 'review-pr')
+  mcpServers?: string[] // MCP servers to enable
+  autoAdvance?: boolean // Auto-move task to next column when done
+}
+
+// Workflow step presets for quick column creation
+export const WORKFLOW_STEP_PRESETS: Record<string, {
+  title: string
+  description: string
+  color: string
+  agent?: AgentType
+  prompt?: string
+  icon: string
+}> = {
+  backlog: {
+    title: 'Backlog',
+    description: 'Tasks waiting to be worked on',
+    color: 'border-t-slate-500',
+    icon: 'Inbox',
+  },
+  refine: {
+    title: 'Refine',
+    description: 'Clarify requirements and break down tasks',
+    color: 'border-t-purple-500',
+    agent: 'claude-code',
+    prompt: 'Analyze this task and break it down into clear, actionable steps. Identify any ambiguities or missing requirements. Create a detailed implementation plan.',
+    icon: 'Sparkles',
+  },
+  skills: {
+    title: 'Add Skills/MCPs',
+    description: 'Identify and configure needed tools',
+    color: 'border-t-blue-500',
+    agent: 'claude-code',
+    prompt: 'Review the task requirements and identify which skills, MCP servers, or tools would be helpful. List specific capabilities needed (file operations, git, browser automation, etc).',
+    icon: 'Puzzle',
+  },
+  worktree: {
+    title: 'Setup Worktree',
+    description: 'Create git branch and worktree',
+    color: 'border-t-cyan-500',
+    agent: 'claude-code',
+    prompt: 'Create a new git worktree and branch for this task. Use a descriptive branch name based on the task title. Ensure the working directory is properly configured.',
+    icon: 'GitBranch',
+  },
+  code: {
+    title: 'Code',
+    description: 'Implement the feature or fix',
+    color: 'border-t-emerald-500',
+    agent: 'claude-code',
+    prompt: 'Implement the task according to the plan. Write clean, well-documented code following project conventions. Include appropriate error handling and tests.',
+    icon: 'Code2',
+  },
+  test: {
+    title: 'Test & Review',
+    description: 'Visual testing and code review',
+    color: 'border-t-amber-500',
+    agent: 'claude-code',
+    prompt: 'Test the implementation visually using browser screenshots. Verify the UI matches expectations. Run any automated tests. Review the code for bugs, security issues, and best practices.',
+    icon: 'Eye',
+  },
+  docs: {
+    title: 'Update Docs',
+    description: 'Update documentation and comments',
+    color: 'border-t-pink-500',
+    agent: 'claude-code',
+    prompt: 'Update relevant documentation including README, inline comments, and any API docs. Ensure new features are properly documented.',
+    icon: 'FileText',
+  },
+  pr: {
+    title: 'Commit & PR',
+    description: 'Create commit and pull request',
+    color: 'border-t-teal-500',
+    agent: 'claude-code',
+    prompt: 'Stage all changes, create a descriptive commit message, and open a pull request. Include a summary of changes and testing notes in the PR description.',
+    icon: 'GitPullRequest',
+  },
+  done: {
+    title: 'Done',
+    description: 'Completed tasks',
+    color: 'border-t-green-500',
+    icon: 'CheckCircle2',
+  },
 }
 
 export interface Task {
@@ -85,6 +179,25 @@ export interface AgentInfo {
   worktreePath?: string
   startedAt?: Date
   logs?: string[]
+  lastActivity?: AgentActivity // Most recent agent action
+  tokenUsage?: TokenUsage // Token consumption
+}
+
+// Represents a single agent action/activity
+export interface AgentActivity {
+  type: 'tool_use' | 'message' | 'thinking' | 'error'
+  tool?: string // e.g., 'Read', 'Edit', 'Bash'
+  summary: string // e.g., 'Reading src/app/page.tsx'
+  timestamp: Date
+}
+
+// Token usage tracking
+export interface TokenUsage {
+  input: number
+  output: number
+  cacheRead?: number
+  cacheCreation?: number
+  contextPercentage?: number // % of context window used
 }
 
 export interface GitInfo {
@@ -143,6 +256,85 @@ export interface BoardSettings {
 export type AgentType = 'claude-code' | 'gemini-cli' | 'codex' | 'copilot' | 'amp' | 'cursor' | 'custom'
 export type AgentStatus = 'idle' | 'running' | 'paused' | 'completed' | 'failed'
 export type Priority = 'low' | 'medium' | 'high' | 'urgent'
+
+// Agent display metadata
+export const AGENT_META: Record<AgentType, {
+  label: string
+  shortLabel: string
+  color: string
+  bgColor: string
+  borderColor: string
+  icon: string // Lucide icon name
+}> = {
+  'claude-code': {
+    label: 'Claude Code',
+    shortLabel: 'Claude',
+    color: 'text-violet-400',
+    bgColor: 'bg-violet-500/20',
+    borderColor: 'border-violet-500/50',
+    icon: 'Sparkles',
+  },
+  'gemini-cli': {
+    label: 'Gemini CLI',
+    shortLabel: 'Gemini',
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    borderColor: 'border-blue-500/50',
+    icon: 'Gem',
+  },
+  'codex': {
+    label: 'OpenAI Codex',
+    shortLabel: 'Codex',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    borderColor: 'border-green-500/50',
+    icon: 'Code2',
+  },
+  'copilot': {
+    label: 'GitHub Copilot',
+    shortLabel: 'Copilot',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/20',
+    borderColor: 'border-amber-500/50',
+    icon: 'Github',
+  },
+  'amp': {
+    label: 'Amp',
+    shortLabel: 'Amp',
+    color: 'text-rose-400',
+    bgColor: 'bg-rose-500/20',
+    borderColor: 'border-rose-500/50',
+    icon: 'Zap',
+  },
+  'cursor': {
+    label: 'Cursor AI',
+    shortLabel: 'Cursor',
+    color: 'text-pink-400',
+    bgColor: 'bg-pink-500/20',
+    borderColor: 'border-pink-500/50',
+    icon: 'MousePointer2',
+  },
+  'custom': {
+    label: 'Custom Agent',
+    shortLabel: 'Custom',
+    color: 'text-slate-400',
+    bgColor: 'bg-slate-500/20',
+    borderColor: 'border-slate-500/50',
+    icon: 'Bot',
+  },
+}
+
+export const AGENT_STATUS_META: Record<AgentStatus, {
+  label: string
+  color: string
+  bgColor: string
+}> = {
+  idle: { label: 'Idle', color: 'text-slate-400', bgColor: 'bg-slate-500' },
+  running: { label: 'Running', color: 'text-emerald-400', bgColor: 'bg-emerald-500' },
+  paused: { label: 'Paused', color: 'text-amber-400', bgColor: 'bg-amber-500' },
+  completed: { label: 'Completed', color: 'text-green-400', bgColor: 'bg-green-500' },
+  failed: { label: 'Failed', color: 'text-red-400', bgColor: 'bg-red-500' },
+}
 
 // Column presets
 export const COLUMN_PRESETS = {
