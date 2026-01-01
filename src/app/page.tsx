@@ -2,6 +2,7 @@
 
 import { KanbanBoard } from "@/components/board"
 import { BoardSidebar } from "@/components/sidebar"
+import { TaskModal } from "@/components/task"
 
 export default function Home() {
   return (
@@ -26,6 +27,9 @@ export default function Home() {
           <KanbanBoard />
         </main>
       </div>
+
+      {/* Task Modal */}
+      <TaskModal />
     </div>
   )
 }

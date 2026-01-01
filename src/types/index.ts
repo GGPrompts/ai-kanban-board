@@ -48,6 +48,7 @@ export interface Task {
   estimate?: string // e.g., "2h", "1d"
   dueDate?: Date
   assignee?: string
+  activities?: TaskActivity[]
   createdAt: Date
   updatedAt: Date
 }
@@ -144,4 +145,12 @@ export const PRIORITY_COLORS: Record<Priority, string> = {
   medium: 'bg-blue-500',
   high: 'bg-orange-500',
   urgent: 'bg-red-500',
+}
+
+// Task activity for timeline
+export interface TaskActivity {
+  id: string
+  type: 'created' | 'updated' | 'moved' | 'commented'
+  description: string
+  timestamp: Date
 }
