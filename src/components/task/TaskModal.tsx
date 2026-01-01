@@ -90,7 +90,7 @@ export function TaskModal() {
         </DialogHeader>
 
         {/* Tabs */}
-        <Tabs defaultValue="details" className="flex-1 flex flex-col overflow-hidden">
+        <Tabs defaultValue="details" className="flex-1 flex flex-col min-h-0">
           <TabsList className="mx-6 mt-4 bg-black/40 border border-white/10">
             <TabsTrigger value="details" className="gap-1.5">
               <FileText className="h-4 w-4" />
