@@ -411,17 +411,39 @@ export async function streamClaude(
 
 /**
  * Check if Claude CLI is available and authenticated
+ * Times out after 5 seconds to prevent hanging
  */
 export async function isClaudeAvailable(): Promise<boolean> {
   return new Promise((resolve) => {
-    const claude = spawn(CLAUDE_BIN, ['--version'])
+    let resolved = false
+
+    const claude = spawn(CLAUDE_BIN, ['--version'], {
+      stdio: ['ignore', 'pipe', 'pipe']
+    })
+
+    // Timeout after 5 seconds
+    const timeout = setTimeout(() => {
+      if (!resolved) {
+        resolved = true
+        claude.kill()
+        resolve(false)
+      }
+    }, 5000)
 
     claude.on('close', (code) => {
-      resolve(code === 0)
+      if (!resolved) {
+        resolved = true
+        clearTimeout(timeout)
+        resolve(code === 0)
+      }
     })
 
     claude.on('error', () => {
-      resolve(false)
+      if (!resolved) {
+        resolved = true
+        clearTimeout(timeout)
+        resolve(false)
+      }
     })
   })
 }
