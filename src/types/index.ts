@@ -63,10 +63,20 @@ export interface AgentInfo {
 }
 
 export interface GitInfo {
-  branch?: string
-  prNumber?: number
+  worktree?: string        // Path to git worktree
+  branch?: string          // Branch name
+  baseBranch?: string      // Base branch (main/develop)
+  prNumber?: number        // GitHub PR number
   prStatus?: 'draft' | 'open' | 'merged' | 'closed'
-  commits?: string[]
+  prUrl?: string           // PR URL
+  commits?: Commit[]       // Recent commits
+}
+
+export interface Commit {
+  sha: string
+  message: string
+  author: string
+  date: string
 }
 
 export interface DiffInfo {

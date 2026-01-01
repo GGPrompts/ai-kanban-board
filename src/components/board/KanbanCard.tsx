@@ -3,11 +3,18 @@
 import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { motion } from "framer-motion"
-import { GripVertical, Bot, GitBranch } from "lucide-react"
+import { GripVertical, Bot, GitBranch, GitPullRequest } from "lucide-react"
 import { Task, PRIORITY_COLORS } from "@/types"
 import { useBoardStore } from "@/lib/store"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+
+const PR_STATUS_COLORS: Record<string, string> = {
+  draft: "bg-slate-500",
+  open: "bg-emerald-500",
+  merged: "bg-purple-500",
+  closed: "bg-red-500",
+}
 
 interface KanbanCardProps {
   task: Task
@@ -53,6 +60,9 @@ export function KanbanCard({ task, isOverlay = false }: KanbanCardProps) {
     setSelectedTask(task.id)
   }
 
+  // Check if PR is ready for review (open status)
+  const hasPRReadyForReview = task.git?.prStatus === "open"
+
   // Render overlay version (shown during drag)
   if (isOverlay) {
     return (
@@ -72,7 +82,8 @@ export function KanbanCard({ task, isOverlay = false }: KanbanCardProps) {
       transition={{ duration: 0.2 }}
       className={cn(
         "kanban-card group relative p-3",
-        isDragging && "opacity-50 scale-[1.02] border-glow"
+        isDragging && "opacity-50 scale-[1.02] border-glow",
+        hasPRReadyForReview && "ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10"
       )}
       onClick={handleClick}
     >
@@ -147,9 +158,24 @@ function CardContent({ task }: { task: Task }) {
 
       {/* Git indicator */}
       {task.git?.branch && (
-        <div className="flex items-center gap-1 mt-2 text-xs text-zinc-500">
+        <div className="flex items-center gap-1.5 mt-2 text-xs text-zinc-500">
           <GitBranch className="h-3 w-3" />
-          <span className="truncate max-w-24">{task.git.branch}</span>
+          <span className="truncate max-w-20">{task.git.branch}</span>
+          {task.git.prNumber && (
+            <div className="flex items-center gap-1 ml-auto">
+              <GitPullRequest className="h-3 w-3" />
+              <span className="text-zinc-400">#{task.git.prNumber}</span>
+              {task.git.prStatus && (
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    PR_STATUS_COLORS[task.git.prStatus]
+                  )}
+                  title={task.git.prStatus}
+                />
+              )}
+            </div>
+          )}
         </div>
       )}
 

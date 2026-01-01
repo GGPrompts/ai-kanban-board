@@ -1,7 +1,7 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { Bot, GitBranch, Trash2, MessageSquare, FileCode, History, FileText } from "lucide-react"
+import { Bot, GitBranch, Trash2, MessageSquare, FileCode, History, FileText, FolderGit2 } from "lucide-react"
 import { Task } from "@/types"
 import { useBoardStore } from "@/lib/store"
 import {
@@ -16,6 +16,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { TaskDetailsForm } from "./TaskDetailsForm"
 import { TaskTimeline } from "./TaskTimeline"
 import { TaskChat } from "./TaskChat"
+import { TaskGitPanel } from "./TaskGitPanel"
+import { TaskDiff } from "./TaskDiff"
 import { cn } from "@/lib/utils"
 
 export function TaskModal() {
@@ -97,6 +99,10 @@ export function TaskModal() {
               <MessageSquare className="h-4 w-4" />
               Chat
             </TabsTrigger>
+            <TabsTrigger value="git" className="gap-1.5">
+              <FolderGit2 className="h-4 w-4" />
+              Git
+            </TabsTrigger>
             <TabsTrigger value="diff" className="gap-1.5">
               <FileCode className="h-4 w-4" />
               Diff
@@ -139,7 +145,22 @@ export function TaskModal() {
               </AnimatePresence>
             </TabsContent>
 
-            {/* Diff Tab - Placeholder for Phase 5 */}
+            {/* Git Tab */}
+            <TabsContent value="git" className="mt-0 h-full">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key="git"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <TaskGitPanel task={task} />
+                </motion.div>
+              </AnimatePresence>
+            </TabsContent>
+
+            {/* Diff Tab */}
             <TabsContent value="diff" className="mt-0 h-full">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -148,25 +169,8 @@ export function TaskModal() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="glass-dark p-8 text-center"
                 >
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                      <FileCode className="h-8 w-8 text-cyan-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-zinc-200 terminal-glow">
-                        Code Review
-                      </h3>
-                      <p className="text-sm text-zinc-500 mt-1">
-                        Coming in Phase 5
-                      </p>
-                    </div>
-                    <p className="text-xs text-zinc-600 max-w-sm">
-                      Review code changes, approve diffs, and merge AI-generated code
-                      directly from the task view.
-                    </p>
-                  </div>
+                  <TaskDiff task={task} />
                 </motion.div>
               </AnimatePresence>
             </TabsContent>

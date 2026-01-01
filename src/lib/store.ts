@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Board, Column, Task, Message, AgentInfo, COLUMN_PRESETS } from '@/types'
+import { Board, Column, Task, Message, AgentInfo, GitInfo, Commit, COLUMN_PRESETS } from '@/types'
 import { BOARD_TEMPLATES, BoardTemplateKey } from './constants'
 
 // Generate unique IDs
@@ -57,6 +57,11 @@ interface BoardState {
   // Chat actions
   addMessage: (taskId: string, message: Omit<Message, 'id'>) => void
   updateTaskAgent: (taskId: string, agent: AgentInfo) => void
+
+  // Git actions
+  updateTaskGit: (taskId: string, gitInfo: Partial<GitInfo>) => void
+  createWorktree: (taskId: string) => void
+  createPR: (taskId: string) => void
 
   // Helpers
   getTasksByColumn: (columnId: string) => Task[]
@@ -278,6 +283,87 @@ export const useBoardStore = create<BoardState>()(
           tasks: state.tasks.map((t) =>
             t.id === taskId
               ? { ...t, agent, updatedAt: new Date() }
+              : t
+          ),
+        }))
+      },
+
+      // Git actions
+      updateTaskGit: (taskId, gitInfo) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, git: { ...t.git, ...gitInfo }, updatedAt: new Date() }
+              : t
+          ),
+        }))
+      },
+
+      createWorktree: (taskId) => {
+        const { tasks } = get()
+        const task = tasks.find((t) => t.id === taskId)
+        if (!task) return
+
+        // Generate branch name from task title
+        const branchName = `feature/${task.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')
+          .substring(0, 50)}`
+
+        const worktreePath = `/tmp/worktrees/${branchName}`
+
+        // Mock worktree creation - in real implementation this would call git
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  git: {
+                    ...t.git,
+                    worktree: worktreePath,
+                    branch: branchName,
+                    baseBranch: 'main',
+                    commits: [],
+                  },
+                  updatedAt: new Date(),
+                }
+              : t
+          ),
+        }))
+      },
+
+      createPR: (taskId) => {
+        const { tasks } = get()
+        const task = tasks.find((t) => t.id === taskId)
+        if (!task?.git?.branch) return
+
+        // Mock PR creation - generates a fake PR number
+        const prNumber = Math.floor(Math.random() * 1000) + 1
+        const prUrl = `https://github.com/user/repo/pull/${prNumber}`
+
+        // Add a mock commit
+        const mockCommit: Commit = {
+          sha: generateId().substring(0, 7),
+          message: `feat: ${task.title}`,
+          author: 'AI Agent',
+          date: new Date().toISOString(),
+        }
+
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  git: {
+                    ...t.git,
+                    prNumber,
+                    prUrl,
+                    prStatus: 'draft' as const,
+                    commits: [...(t.git?.commits || []), mockCommit],
+                  },
+                  updatedAt: new Date(),
+                }
               : t
           ),
         }))
