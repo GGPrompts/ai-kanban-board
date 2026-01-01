@@ -111,9 +111,9 @@ export function TaskChat({ task }: TaskChatProps) {
   }
 
   return (
-    <div className="flex flex-col h-[450px]">
+    <div className="flex flex-col">
       {/* Agent Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
+      <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-3">
           {task.agent ? (
             <AgentBadge agent={task.agent} />
@@ -133,7 +133,7 @@ export function TaskChat({ task }: TaskChatProps) {
       </div>
 
       {/* Messages */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
+      <ScrollArea ref={scrollAreaRef} className="h-[280px] p-4">
         {messages.length === 0 && !isStreaming ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
