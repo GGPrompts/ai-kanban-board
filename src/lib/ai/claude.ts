@@ -38,6 +38,14 @@ const CLAUDE_BIN = findClaudeBin()
 // Heartbeat interval in ms (send every 15 seconds to keep connection alive)
 const HEARTBEAT_INTERVAL = 15000
 
+// Expand ~ to home directory
+function expandTilde(path: string): string {
+  if (path.startsWith('~/')) {
+    return join(homedir(), path.slice(2))
+  }
+  return path
+}
+
 /**
  * Stream chat completions from Claude CLI
  * Returns stream and a function to get the captured session_id
@@ -87,13 +95,13 @@ export async function streamClaude(
 
   // Add working directory context
   if (settings?.workingDir) {
-    args.push('--add-dir', settings.workingDir)
+    args.push('--add-dir', expandTilde(settings.workingDir))
   }
 
   // Add additional directories
   if (settings?.additionalDirs && settings.additionalDirs.length > 0) {
     for (const dir of settings.additionalDirs) {
-      args.push('--add-dir', dir)
+      args.push('--add-dir', expandTilde(dir))
     }
   }
 
@@ -115,7 +123,7 @@ export async function streamClaude(
   args.push(lastUserMessage.content)
 
   // Determine working directory
-  const cwd = settings?.workingDir || process.cwd()
+  const cwd = settings?.workingDir ? expandTilde(settings.workingDir) : process.cwd()
 
   const claude = spawn(CLAUDE_BIN, args, {
     env: {
