@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { Bot, Sparkles } from "lucide-react"
+import { useEffect, useRef, useCallback } from "react"
+import { Bot, Sparkles, Square, Loader2 } from "lucide-react"
 import { Task, Message, AgentInfo } from "@/types"
 import { useBoardStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -9,6 +9,8 @@ import { ChatMessage } from "./ChatMessage"
 import { ChatInput } from "./ChatInput"
 import { AgentSelector } from "@/components/shared/AgentSelector"
 import { AgentBadge } from "@/components/shared/AgentBadge"
+import { useClaudeChat } from "@/hooks/useClaudeChat"
+import type { ClaudeSettings } from "@/lib/ai/types"
 
 interface TaskChatProps {
   task: Task
@@ -17,12 +19,56 @@ interface TaskChatProps {
 export function TaskChat({ task }: TaskChatProps) {
   const addMessage = useBoardStore((state) => state.addMessage)
   const updateTaskAgent = useBoardStore((state) => state.updateTaskAgent)
+  const updateTask = useBoardStore((state) => state.updateTask)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
-  const [isTyping, setIsTyping] = useState(false)
 
   const messages = task.messages || []
 
-  // Scroll to bottom on new messages
+  // Handle new assistant message
+  const handleMessage = useCallback((message: Omit<Message, 'id'>) => {
+    addMessage(task.id, message)
+    // Set agent back to idle
+    if (task.agent) {
+      updateTaskAgent(task.id, { ...task.agent, status: "idle" })
+    }
+  }, [task.id, task.agent, addMessage, updateTaskAgent])
+
+  // Handle session ID from Claude
+  const handleSessionId = useCallback((sessionId: string) => {
+    if (task.agent) {
+      updateTaskAgent(task.id, { ...task.agent, sessionId })
+    }
+  }, [task.id, task.agent, updateTaskAgent])
+
+  // Handle errors
+  const handleError = useCallback((error: string) => {
+    console.error('Claude chat error:', error)
+    // Add error as system message
+    addMessage(task.id, {
+      role: 'system',
+      content: `Error: ${error}`,
+      timestamp: new Date()
+    })
+    // Set agent to failed
+    if (task.agent) {
+      updateTaskAgent(task.id, { ...task.agent, status: "failed" })
+    }
+  }, [task.id, task.agent, addMessage, updateTaskAgent])
+
+  const {
+    isStreaming,
+    streamingContent,
+    currentToolUse,
+    usage,
+    sendMessage,
+    cancel
+  } = useClaudeChat({
+    onMessage: handleMessage,
+    onSessionId: handleSessionId,
+    onError: handleError
+  })
+
+  // Scroll to bottom on new messages or streaming content
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]')
@@ -30,7 +76,7 @@ export function TaskChat({ task }: TaskChatProps) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight
       }
     }
-  }, [messages.length, isTyping])
+  }, [messages.length, streamingContent, currentToolUse])
 
   const handleSend = async (content: string) => {
     // Add user message
@@ -46,24 +92,14 @@ export function TaskChat({ task }: TaskChatProps) {
       updateTaskAgent(task.id, { ...task.agent, status: "running" })
     }
 
-    // Mock AI response after delay
-    setIsTyping(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const agentType = task.agent?.type || "claude-code"
-    const assistantMessage: Omit<Message, "id"> = {
-      role: "assistant",
-      content: generateMockResponse(content, agentType),
-      timestamp: new Date(),
-      model: agentType,
+    // Build Claude settings from task configuration
+    const settings: ClaudeSettings = {
+      systemPrompt: buildSystemPrompt(task),
+      ...task.claudeSettings
     }
-    addMessage(task.id, assistantMessage)
-    setIsTyping(false)
 
-    // Set agent back to idle
-    if (task.agent) {
-      updateTaskAgent(task.id, { ...task.agent, status: "idle" })
-    }
+    // Send to Claude with session for multi-turn
+    await sendMessage(content, settings, task.agent?.sessionId)
   }
 
   const handleAgentChange = (agentType: string) => {
@@ -86,6 +122,12 @@ export function TaskChat({ task }: TaskChatProps) {
               <span className="text-sm">No agent assigned</span>
             </div>
           )}
+          {/* Show usage if available */}
+          {usage && (
+            <span className="text-xs text-zinc-500">
+              {usage.totalTokens.toLocaleString()} tokens
+            </span>
+          )}
         </div>
         <AgentSelector
           value={task.agent?.type}
@@ -95,7 +137,7 @@ export function TaskChat({ task }: TaskChatProps) {
 
       {/* Messages */}
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
-        {messages.length === 0 ? (
+        {messages.length === 0 && !isStreaming ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
             <div className="w-12 h-12 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
               <Sparkles className="h-6 w-6 text-emerald-400" />
@@ -104,7 +146,7 @@ export function TaskChat({ task }: TaskChatProps) {
               Start a conversation
             </h3>
             <p className="text-xs text-zinc-500 mt-1 max-w-xs">
-              Chat with the AI agent about this task. Ask questions, give instructions, or request changes.
+              Chat with Claude about this task. Ask questions, give instructions, or request changes.
             </p>
           </div>
         ) : (
@@ -112,7 +154,23 @@ export function TaskChat({ task }: TaskChatProps) {
             {messages.map((message) => (
               <ChatMessage key={message.id} message={message} />
             ))}
-            {isTyping && (
+
+            {/* Streaming content */}
+            {isStreaming && (streamingContent || currentToolUse) && (
+              <ChatMessage
+                message={{
+                  id: "streaming",
+                  role: "assistant",
+                  content: streamingContent || "",
+                  timestamp: new Date(),
+                }}
+                toolUse={currentToolUse}
+                isStreaming
+              />
+            )}
+
+            {/* Loading indicator when waiting for first response */}
+            {isStreaming && !streamingContent && !currentToolUse && (
               <ChatMessage
                 message={{
                   id: "typing",
@@ -130,7 +188,9 @@ export function TaskChat({ task }: TaskChatProps) {
       {/* Input */}
       <ChatInput
         onSend={handleSend}
-        disabled={isTyping}
+        onCancel={isStreaming ? cancel : undefined}
+        disabled={!task.agent}
+        isStreaming={isStreaming}
         placeholder={
           task.agent
             ? `Message ${task.agent.type}...`
@@ -141,60 +201,34 @@ export function TaskChat({ task }: TaskChatProps) {
   )
 }
 
-// Generate mock responses based on user input
-function generateMockResponse(userMessage: string, agentType: string): string {
-  const lower = userMessage.toLowerCase()
+/**
+ * Build a system prompt based on task context
+ */
+function buildSystemPrompt(task: Task): string {
+  const parts: string[] = []
 
-  if (lower.includes("help") || lower.includes("what can")) {
-    return `I'm ${agentType}, ready to help with this task. I can:
+  parts.push(`You are helping with a task titled: "${task.title}"`)
 
-- Analyze requirements and suggest implementation approaches
-- Write code and tests
-- Review existing code for issues
-- Explain complex concepts
-- Help debug problems
-
-What would you like me to help with?`
+  if (task.description) {
+    parts.push(`\nTask description:\n${task.description}`)
   }
 
-  if (lower.includes("implement") || lower.includes("create") || lower.includes("build")) {
-    return `I'll help you implement that. Here's my approach:
-
-1. First, I'll analyze the existing codebase structure
-2. Then identify the best location for new code
-3. Implement the feature with proper typing
-4. Add appropriate tests
-
-Should I proceed with this plan?`
+  if (task.git?.branch) {
+    parts.push(`\nGit context:`)
+    parts.push(`- Branch: ${task.git.branch}`)
+    if (task.git.baseBranch) {
+      parts.push(`- Base branch: ${task.git.baseBranch}`)
+    }
+    if (task.git.worktree) {
+      parts.push(`- Worktree: ${task.git.worktree}`)
+    }
   }
 
-  if (lower.includes("fix") || lower.includes("bug") || lower.includes("error")) {
-    return `I'll investigate this issue. To help fix it, I'll need to:
-
-1. Reproduce the problem
-2. Trace through the relevant code paths
-3. Identify the root cause
-4. Propose a fix
-
-Can you share any error messages or steps to reproduce?`
+  if (task.labels.length > 0) {
+    parts.push(`\nLabels: ${task.labels.join(', ')}`)
   }
 
-  if (lower.includes("review") || lower.includes("check")) {
-    return `I'll review the code for:
+  parts.push(`\nPriority: ${task.priority}`)
 
-- Potential bugs and edge cases
-- Performance issues
-- Security vulnerabilities
-- Code style and best practices
-- Test coverage
-
-Give me a moment to analyze...`
-  }
-
-  // Default echo-style response
-  return `Understood. You mentioned: "${userMessage}"
-
-I'm analyzing this request in the context of the task "${agentType === 'claude-code' ? 'using Claude Code' : `with ${agentType}`}".
-
-What specific aspect would you like me to focus on?`
+  return parts.join('\n')
 }

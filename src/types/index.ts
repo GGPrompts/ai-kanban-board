@@ -35,6 +35,9 @@ export interface Task {
   // AI Agent integration
   agent?: AgentInfo
 
+  // Per-task Claude settings
+  claudeSettings?: TaskClaudeSettings
+
   // Chat thread (like AI Workspace)
   messages?: Message[]
 
@@ -51,6 +54,28 @@ export interface Task {
   activities?: TaskActivity[]
   createdAt: Date
   updatedAt: Date
+}
+
+// Per-task Claude CLI configuration
+export interface TaskClaudeSettings {
+  // Agent from ~/.claude/agents/
+  agent?: string
+
+  // Working directory for task context
+  workingDir?: string
+
+  // Additional directories to include
+  additionalDirs?: string[]
+
+  // Permission mode
+  permissionMode?: 'bypassPermissions' | 'plan' | 'default'
+
+  // Tool permissions
+  allowedTools?: string[]
+  disallowedTools?: string[]
+
+  // Custom system prompt for this task
+  systemPrompt?: string
 }
 
 export interface AgentInfo {

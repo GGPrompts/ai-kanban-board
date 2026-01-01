@@ -16,6 +16,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { TaskDetailsForm } from "./TaskDetailsForm"
 import { TaskTimeline } from "./TaskTimeline"
 import { TaskChat } from "./TaskChat"
+import { TaskAISettings } from "./TaskAISettings"
 import { TaskGitPanel } from "./TaskGitPanel"
 import { TaskDiff } from "./TaskDiff"
 import { cn } from "@/lib/utils"
@@ -138,9 +139,12 @@ export function TaskModal() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="glass-dark overflow-hidden"
+                  className="space-y-4"
                 >
-                  <TaskChat task={task} />
+                  <div className="glass-dark overflow-hidden">
+                    <TaskChat task={task} />
+                  </div>
+                  <TaskAISettings task={task} />
                 </motion.div>
               </AnimatePresence>
             </TabsContent>

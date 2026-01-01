@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Board, Column, Task, Message, AgentInfo, GitInfo, Commit, COLUMN_PRESETS } from '@/types'
+import { Board, Column, Task, Message, AgentInfo, GitInfo, Commit, TaskClaudeSettings, COLUMN_PRESETS } from '@/types'
 import { BOARD_TEMPLATES, BoardTemplateKey } from './constants'
 
 // Generate unique IDs
@@ -57,6 +57,7 @@ interface BoardState {
   // Chat actions
   addMessage: (taskId: string, message: Omit<Message, 'id'>) => void
   updateTaskAgent: (taskId: string, agent: AgentInfo) => void
+  updateTaskClaudeSettings: (taskId: string, settings: Partial<TaskClaudeSettings>) => void
 
   // Git actions
   updateTaskGit: (taskId: string, gitInfo: Partial<GitInfo>) => void
@@ -283,6 +284,20 @@ export const useBoardStore = create<BoardState>()(
           tasks: state.tasks.map((t) =>
             t.id === taskId
               ? { ...t, agent, updatedAt: new Date() }
+              : t
+          ),
+        }))
+      },
+
+      updateTaskClaudeSettings: (taskId, settings) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  claudeSettings: { ...t.claudeSettings, ...settings },
+                  updatedAt: new Date()
+                }
               : t
           ),
         }))
