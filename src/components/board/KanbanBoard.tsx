@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -28,6 +28,12 @@ export function KanbanBoard() {
   const board = getCurrentBoard()
 
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [hasMounted, setHasMounted] = useState(false)
+
+  // Wait for hydration to complete before rendering dynamic content
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -112,6 +118,15 @@ export function KanbanBoard() {
     },
     [tasks, getTasksByColumn, reorderTasks]
   )
+
+  // Show loading state during hydration to prevent mismatch
+  if (!hasMounted) {
+    return (
+      <div className="flex-1 gradient-bg p-6 flex items-center justify-center">
+        <div className="text-white/50 animate-pulse">Loading board...</div>
+      </div>
+    )
+  }
 
   if (!board) {
     return (
