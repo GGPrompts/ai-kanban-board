@@ -6,6 +6,8 @@ import { motion } from 'framer-motion'
 import { Column, Task } from '@/types'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
+import { AddTaskButton } from './AddTaskButton'
+import { KanbanCard } from './KanbanCard'
 
 interface KanbanColumnProps {
   column: Column
@@ -62,27 +64,16 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
                 </div>
               ) : (
                 tasks.map((task) => (
-                  <TaskCardPlaceholder key={task.id} task={task} />
+                  <KanbanCard key={task.id} task={task} />
                 ))
               )}
             </div>
           </SortableContext>
         </ScrollArea>
       </div>
-    </motion.div>
-  )
-}
 
-// Temporary placeholder until KanbanCard is implemented
-function TaskCardPlaceholder({ task }: { task: Task }) {
-  return (
-    <div className="kanban-card p-3 rounded-lg">
-      <h4 className="text-sm font-medium text-white">{task.title}</h4>
-      {task.description && (
-        <p className="text-xs text-white/60 mt-1 line-clamp-2">
-          {task.description}
-        </p>
-      )}
-    </div>
+      {/* Add Task Button */}
+      <AddTaskButton columnId={column.id} />
+    </motion.div>
   )
 }
