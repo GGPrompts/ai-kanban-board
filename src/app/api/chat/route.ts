@@ -62,9 +62,15 @@ export async function POST(request: NextRequest) {
  * GET /api/chat - Get available agents and check status
  */
 export async function GET() {
+  console.log('[API /api/chat GET] Starting...')
   try {
+    console.log('[API /api/chat GET] Checking Claude availability...')
     const available = await isClaudeAvailable()
+    console.log('[API /api/chat GET] Claude available:', available)
+
+    console.log('[API /api/chat GET] Listing agents...')
     const agents = listClaudeAgents()
+    console.log('[API /api/chat GET] Found agents:', agents.length)
 
     return new Response(
       JSON.stringify({
@@ -76,7 +82,7 @@ export async function GET() {
       }
     )
   } catch (error) {
-    console.error('Chat status API error:', error)
+    console.error('[API /api/chat GET] Error:', error)
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       {
