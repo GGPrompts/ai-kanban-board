@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { TaskDetailsForm } from "./TaskDetailsForm"
 import { TaskTimeline } from "./TaskTimeline"
+import { TaskChat } from "./TaskChat"
 import { cn } from "@/lib/utils"
 
 export function TaskModal() {
@@ -122,7 +123,7 @@ export function TaskModal() {
               </AnimatePresence>
             </TabsContent>
 
-            {/* Chat Tab - Placeholder for Phase 4 */}
+            {/* Chat Tab */}
             <TabsContent value="chat" className="mt-0 h-full">
               <AnimatePresence mode="wait">
                 <motion.div
@@ -131,25 +132,9 @@ export function TaskModal() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="glass-dark p-8 text-center"
+                  className="glass-dark overflow-hidden"
                 >
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <MessageSquare className="h-8 w-8 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-medium text-zinc-200 terminal-glow">
-                        AI Chat
-                      </h3>
-                      <p className="text-sm text-zinc-500 mt-1">
-                        Coming in Phase 4
-                      </p>
-                    </div>
-                    <p className="text-xs text-zinc-600 max-w-sm">
-                      Chat with AI agents about this task. Send instructions, review output,
-                      and track progress in real-time.
-                    </p>
-                  </div>
+                  <TaskChat task={task} />
                 </motion.div>
               </AnimatePresence>
             </TabsContent>

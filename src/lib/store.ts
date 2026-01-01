@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Board, Column, Task, COLUMN_PRESETS } from '@/types'
+import { Board, Column, Task, Message, AgentInfo, COLUMN_PRESETS } from '@/types'
 import { BOARD_TEMPLATES, BoardTemplateKey } from './constants'
 
 // Generate unique IDs
@@ -53,6 +53,10 @@ interface BoardState {
   moveTask: (taskId: string, toColumnId: string, newOrder: number) => void
   reorderTasks: (columnId: string, taskIds: string[]) => void
   setSelectedTask: (id: string | null) => void
+
+  // Chat actions
+  addMessage: (taskId: string, message: Omit<Message, 'id'>) => void
+  updateTaskAgent: (taskId: string, agent: AgentInfo) => void
 
   // Helpers
   getTasksByColumn: (columnId: string) => Task[]
@@ -249,6 +253,35 @@ export const useBoardStore = create<BoardState>()(
       },
 
       setSelectedTask: (id) => set({ selectedTaskId: id }),
+
+      // Chat actions
+      addMessage: (taskId, messageData) => {
+        const newMessage: Message = {
+          ...messageData,
+          id: generateId(),
+        }
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  messages: [...(t.messages || []), newMessage],
+                  updatedAt: new Date(),
+                }
+              : t
+          ),
+        }))
+      },
+
+      updateTaskAgent: (taskId, agent) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, agent, updatedAt: new Date() }
+              : t
+          ),
+        }))
+      },
 
       // Helpers
       getTasksByColumn: (columnId) => {
