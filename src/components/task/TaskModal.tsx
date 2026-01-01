@@ -53,7 +53,7 @@ export function TaskModal() {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
-        className="glass-dark border-white/10 sm:max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0"
+        className="!bg-zinc-900 border-white/10 sm:max-w-2xl max-h-[85vh] flex flex-col p-0 gap-0"
         showCloseButton={true}
       >
         {/* Header */}
