@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
+  pointerWithin,
   closestCorners,
   KeyboardSensor,
   PointerSensor,
@@ -12,6 +13,8 @@ import {
   DragStartEvent,
   DragEndEvent,
   DragOverEvent,
+  CollisionDetection,
+  rectIntersection,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -87,6 +90,17 @@ export function KanbanBoard() {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  // Custom collision detection: use pointer position for better UX
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    // First check pointer-based collisions (mouse position)
+    const pointerCollisions = pointerWithin(args)
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions
+    }
+    // Fall back to rect intersection for edge cases
+    return rectIntersection(args)
+  }, [])
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -262,7 +276,7 @@ export function KanbanBoard() {
       >
         <DndContext
           sensors={sensors}
-          collisionDetection={closestCorners}
+          collisionDetection={collisionDetection}
           onDragStart={handleDragStart}
           onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
