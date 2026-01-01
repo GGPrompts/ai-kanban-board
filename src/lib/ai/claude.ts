@@ -17,9 +17,23 @@ import type {
   ClaudeAgent
 } from './types'
 
-// Path to the Claude CLI binary - check local install first, fall back to PATH
-const LOCAL_CLAUDE = join(homedir(), '.claude', 'local', 'claude')
-const CLAUDE_BIN = existsSync(LOCAL_CLAUDE) ? LOCAL_CLAUDE : 'claude'
+// Path to the Claude CLI binary - check common install locations
+const CLAUDE_PATHS = [
+  join(homedir(), '.claude', 'local', 'claude'),  // Claude's own install
+  join(homedir(), '.local', 'bin', 'claude'),     // Common user bin
+  '/usr/local/bin/claude',                         // System install
+]
+
+function findClaudeBin(): string {
+  for (const path of CLAUDE_PATHS) {
+    if (existsSync(path)) {
+      return path
+    }
+  }
+  return 'claude' // Fall back to PATH
+}
+
+const CLAUDE_BIN = findClaudeBin()
 
 // Heartbeat interval in ms (send every 15 seconds to keep connection alive)
 const HEARTBEAT_INTERVAL = 15000
