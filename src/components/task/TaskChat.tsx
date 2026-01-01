@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useCallback } from "react"
-import { Bot, Sparkles, Square, Loader2 } from "lucide-react"
+import { Bot, Sparkles } from "lucide-react"
 import { Task, Message, AgentInfo } from "@/types"
 import { useBoardStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -9,6 +9,7 @@ import { ChatMessage } from "./ChatMessage"
 import { ChatInput } from "./ChatInput"
 import { AgentSelector } from "@/components/shared/AgentSelector"
 import { AgentBadge } from "@/components/shared/AgentBadge"
+import { ContextIndicator } from "@/components/shared/ContextIndicator"
 import { useClaudeChat } from "@/hooks/useClaudeChat"
 import type { ClaudeSettings } from "@/lib/ai/types"
 
@@ -122,12 +123,8 @@ export function TaskChat({ task }: TaskChatProps) {
               <span className="text-sm">No agent assigned</span>
             </div>
           )}
-          {/* Show usage if available */}
-          {usage && (
-            <span className="text-xs text-zinc-500">
-              {usage.totalTokens.toLocaleString()} tokens
-            </span>
-          )}
+          {/* Show context usage indicator */}
+          <ContextIndicator usage={usage} />
         </div>
         <AgentSelector
           value={task.agent?.type}

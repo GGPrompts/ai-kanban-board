@@ -10,11 +10,23 @@ interface UseClaudeChatOptions {
   onError?: (error: string) => void
 }
 
+export interface TokenUsage {
+  inputTokens: number
+  outputTokens: number
+  cacheReadTokens?: number
+  cacheCreationTokens?: number
+  totalTokens: number
+  contextPercentage: number
+}
+
+// Default context limit for Claude models (200k tokens)
+export const CONTEXT_LIMIT = 200000
+
 interface UseClaudeChatReturn {
   isStreaming: boolean
   streamingContent: string
   currentToolUse: { name: string; input: string } | null
-  usage: { inputTokens: number; outputTokens: number; totalTokens: number } | null
+  usage: TokenUsage | null
   sendMessage: (content: string, settings?: ClaudeSettings, sessionId?: string) => Promise<void>
   cancel: () => void
 }
@@ -28,7 +40,7 @@ export function useClaudeChat(options: UseClaudeChatOptions = {}): UseClaudeChat
   const [isStreaming, setIsStreaming] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
   const [currentToolUse, setCurrentToolUse] = useState<{ name: string; input: string } | null>(null)
-  const [usage, setUsage] = useState<{ inputTokens: number; outputTokens: number; totalTokens: number } | null>(null)
+  const [usage, setUsage] = useState<TokenUsage | null>(null)
 
   const abortControllerRef = useRef<AbortController | null>(null)
   const toolUsesRef = useRef<ToolUse[]>([])
@@ -151,10 +163,15 @@ export function useClaudeChat(options: UseClaudeChatOptions = {}): UseClaudeChat
                   onSessionId?.(event.sessionId)
                 }
                 if (event.usage) {
+                  const totalTokens = event.usage.totalTokens
+                  const contextPercentage = Math.round((totalTokens / CONTEXT_LIMIT) * 100)
                   setUsage({
                     inputTokens: event.usage.inputTokens,
                     outputTokens: event.usage.outputTokens,
-                    totalTokens: event.usage.totalTokens
+                    cacheReadTokens: event.usage.cacheReadTokens,
+                    cacheCreationTokens: event.usage.cacheCreationTokens,
+                    totalTokens,
+                    contextPercentage
                   })
                 }
                 break
