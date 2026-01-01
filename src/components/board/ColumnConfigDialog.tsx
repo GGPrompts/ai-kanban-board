@@ -29,6 +29,22 @@ import { useBoardStore } from '@/lib/store'
 import { Column, AgentType, AGENT_META, COLUMN_COLORS } from '@/types'
 import { cn } from '@/lib/utils'
 
+// Explicit mapping for Tailwind to see the classes
+const COLOR_BG_MAP: Record<string, string> = {
+  'border-t-emerald-500': 'bg-emerald-500',
+  'border-t-cyan-500': 'bg-cyan-500',
+  'border-t-blue-500': 'bg-blue-500',
+  'border-t-purple-500': 'bg-purple-500',
+  'border-t-pink-500': 'bg-pink-500',
+  'border-t-red-500': 'bg-red-500',
+  'border-t-orange-500': 'bg-orange-500',
+  'border-t-yellow-500': 'bg-yellow-500',
+  'border-t-green-500': 'bg-green-500',
+  'border-t-teal-500': 'bg-teal-500',
+  'border-t-slate-500': 'bg-slate-500',
+  'border-t-zinc-500': 'bg-zinc-500',
+}
+
 // Icon mapping for agent types
 const AGENT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   Sparkles,
@@ -137,7 +153,7 @@ export function ColumnConfigDialog({ column, open, onOpenChange }: ColumnConfigD
                   onClick={() => setColor(c)}
                   className={cn(
                     "size-7 rounded-md border-2 transition-all",
-                    c.replace("border-t-", "bg-").replace("-500", "-500/80"),
+                    COLOR_BG_MAP[c] || 'bg-zinc-500',
                     color === c
                       ? "border-white scale-110"
                       : "border-transparent hover:scale-105"

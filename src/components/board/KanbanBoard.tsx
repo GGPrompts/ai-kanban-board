@@ -23,15 +23,16 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useBoardStore } from '@/lib/store'
 import { KanbanColumn } from './KanbanColumn'
 import { AddColumnButton } from './AddColumnButton'
-import { Task } from '@/types'
+import { Task, Column } from '@/types'
 import { cn } from '@/lib/utils'
 
 export function KanbanBoard() {
-  const { getCurrentBoard, tasks, moveTask, reorderTasks, getTasksByColumn } = useBoardStore()
+  const { getCurrentBoard, tasks, moveTask, reorderTasks, reorderColumns, getTasksByColumn } = useBoardStore()
   const board = getCurrentBoard()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [activeColumn, setActiveColumn] = useState<Column | null>(null)
   const [hasMounted, setHasMounted] = useState(false)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
@@ -90,9 +91,20 @@ export function KanbanBoard() {
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       const { active } = event
+      const activeData = active.data.current
+
+      // Check if dragging a column
+      if (activeData?.type === 'column') {
+        setActiveColumn(activeData.column)
+        setActiveTask(null)
+        return
+      }
+
+      // Otherwise it's a task
       const task = tasks.find((t) => t.id === active.id)
       if (task) {
         setActiveTask(task)
+        setActiveColumn(null)
       }
     },
     [tasks]
@@ -102,6 +114,11 @@ export function KanbanBoard() {
     (event: DragOverEvent) => {
       const { active, over } = event
       if (!over) return
+
+      const activeData = active.data.current
+
+      // Skip if dragging a column (handled in dragEnd)
+      if (activeData?.type === 'column') return
 
       const activeId = active.id as string
       const overId = over.id as string
@@ -131,7 +148,10 @@ export function KanbanBoard() {
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
+      const activeData = active.data.current
+
       setActiveTask(null)
+      setActiveColumn(null)
 
       if (!over) return
 
@@ -140,6 +160,22 @@ export function KanbanBoard() {
 
       if (activeId === overId) return
 
+      // Handle column reordering
+      if (activeData?.type === 'column' && board) {
+        const sortedColumns = [...board.columns].sort((a, b) => a.order - b.order)
+        const oldIndex = sortedColumns.findIndex((c) => c.id === activeId)
+        const newIndex = sortedColumns.findIndex((c) => c.id === overId)
+
+        if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+          const newColumnIds = sortedColumns.map((c) => c.id)
+          newColumnIds.splice(oldIndex, 1)
+          newColumnIds.splice(newIndex, 0, activeId)
+          reorderColumns(board.id, newColumnIds)
+        }
+        return
+      }
+
+      // Handle task reordering
       const activeTask = tasks.find((t) => t.id === activeId)
       const overTask = tasks.find((t) => t.id === overId)
 
@@ -157,7 +193,7 @@ export function KanbanBoard() {
         }
       }
     },
-    [tasks, getTasksByColumn, reorderTasks]
+    [tasks, board, getTasksByColumn, reorderTasks, reorderColumns]
   )
 
   // Show loading state during hydration to prevent mismatch
@@ -255,6 +291,15 @@ export function KanbanBoard() {
                     {activeTask.description}
                   </p>
                 )}
+              </div>
+            )}
+            {activeColumn && (
+              <div className="agent-station w-80 opacity-90 rotate-1 scale-[1.02] shadow-2xl">
+                <div className="station-header">
+                  <h3 className="font-semibold text-zinc-100 text-sm">
+                    {activeColumn.title}
+                  </h3>
+                </div>
               </div>
             )}
           </DragOverlay>

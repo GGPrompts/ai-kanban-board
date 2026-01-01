@@ -242,7 +242,7 @@ function AgentChip({ summary }: { summary: AgentSummary }) {
           </div>
         </motion.div>
       </TooltipTrigger>
-      <TooltipContent side="bottom" className="glass-dark">
+      <TooltipContent side="bottom" className="glass-overlay">
         <div className="text-xs space-y-1">
           <p className="font-medium">{meta.label}</p>
           <div className="flex gap-3 text-zinc-400">

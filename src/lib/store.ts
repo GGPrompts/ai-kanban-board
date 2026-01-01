@@ -405,6 +405,7 @@ export const useBoardStore = create<BoardState>()(
     }),
     {
       name: 'ai-kanban-storage',
+      skipHydration: true,
     }
   )
 )

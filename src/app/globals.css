@@ -175,7 +175,7 @@
 }
 
 .glass-overlay {
-  background: rgba(var(--glass-overlay-bg), 0.97);
+  background: rgb(var(--glass-overlay-bg));
   backdrop-filter: blur(24px) saturate(200%);
   -webkit-backdrop-filter: blur(24px) saturate(200%);
   border: 1px solid hsl(var(--border) / 0.5);

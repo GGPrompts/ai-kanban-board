@@ -1,7 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useDroppable } from '@dnd-kit/core'
+import { useDroppable, useDndContext } from '@dnd-kit/core'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -18,6 +20,7 @@ import {
   Activity,
   MoreHorizontal,
   FileText,
+  GripVertical,
 } from 'lucide-react'
 import { Column, Task, AgentType, AGENT_META, AGENT_STATUS_META } from '@/types'
 import { useBoardStore } from '@/lib/store'
@@ -57,14 +60,42 @@ interface KanbanColumnProps {
 }
 
 export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
-  const { setNodeRef, isOver } = useDroppable({
+  // Sortable for column reordering
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setSortableRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
     id: column.id,
     data: {
       type: 'column',
       column,
     },
   })
+
+  // Droppable for receiving tasks
+  const { setNodeRef: setDroppableRef, isOver } = useDroppable({
+    id: column.id,
+    data: {
+      type: 'column',
+      column,
+    },
+  })
+
+  // Check if we're dragging a task (not a column)
+  const { active } = useDndContext()
+  const isDraggingTask = active?.data.current?.type !== 'column'
+  const showDropIndicator = isOver && isDraggingTask
+
   const { updateColumn, getCurrentBoard } = useBoardStore()
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  }
   const board = getCurrentBoard()
   const [configOpen, setConfigOpen] = useState(false)
 
@@ -93,17 +124,31 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
   return (
     <TooltipProvider>
       <motion.div
+        ref={setSortableRef}
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        animate={{ opacity: isDragging ? 0.5 : 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="agent-station shrink-0"
+        className={cn(
+          "agent-station shrink-0",
+          isDragging && "z-50 shadow-2xl"
+        )}
         style={{
           '--station-accent': accentColor,
+          ...style,
         } as React.CSSProperties}
       >
         {/* Station Header */}
         <div className="station-header">
           <div className="flex items-center justify-between gap-2">
+            {/* Drag Handle */}
+            <button
+              {...attributes}
+              {...listeners}
+              className="p-1 -ml-1 rounded hover:bg-zinc-800 text-zinc-600 hover:text-zinc-400 cursor-grab active:cursor-grabbing transition-colors"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+
             {/* Left: Agent Badge + Title */}
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
               {/* Agent Avatar/Selector */}
@@ -261,15 +306,15 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
 
         {/* Droppable Task Area */}
         <div
-          ref={setNodeRef}
+          ref={setDroppableRef}
           className={cn(
             'flex-1 min-h-[200px] transition-all duration-200 relative',
-            isOver && 'bg-teal-500/5'
+            showDropIndicator && 'bg-teal-500/5'
           )}
         >
           {/* Drop indicator */}
           <AnimatePresence>
-            {isOver && (
+            {showDropIndicator && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

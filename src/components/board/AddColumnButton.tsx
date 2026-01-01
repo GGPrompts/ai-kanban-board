@@ -19,6 +19,67 @@ import {
 import { useBoardStore } from "@/lib/store"
 import { COLUMN_COLORS, WORKFLOW_STEP_PRESETS, AgentType } from "@/types"
 import { cn } from "@/lib/utils"
+
+// Explicit mappings for Tailwind to see the classes
+const COLOR_BG_MAP: Record<string, string> = {
+  'border-t-emerald-500': 'bg-emerald-500',
+  'border-t-cyan-500': 'bg-cyan-500',
+  'border-t-blue-500': 'bg-blue-500',
+  'border-t-purple-500': 'bg-purple-500',
+  'border-t-pink-500': 'bg-pink-500',
+  'border-t-red-500': 'bg-red-500',
+  'border-t-orange-500': 'bg-orange-500',
+  'border-t-yellow-500': 'bg-yellow-500',
+  'border-t-green-500': 'bg-green-500',
+  'border-t-teal-500': 'bg-teal-500',
+  'border-t-slate-500': 'bg-slate-500',
+  'border-t-zinc-500': 'bg-zinc-500',
+}
+
+const COLOR_BG_LIGHT_MAP: Record<string, string> = {
+  'border-t-emerald-500': 'bg-emerald-500/20',
+  'border-t-cyan-500': 'bg-cyan-500/20',
+  'border-t-blue-500': 'bg-blue-500/20',
+  'border-t-purple-500': 'bg-purple-500/20',
+  'border-t-pink-500': 'bg-pink-500/20',
+  'border-t-red-500': 'bg-red-500/20',
+  'border-t-orange-500': 'bg-orange-500/20',
+  'border-t-yellow-500': 'bg-yellow-500/20',
+  'border-t-green-500': 'bg-green-500/20',
+  'border-t-teal-500': 'bg-teal-500/20',
+  'border-t-slate-500': 'bg-slate-500/20',
+  'border-t-zinc-500': 'bg-zinc-500/20',
+}
+
+const COLOR_BORDER_MAP: Record<string, string> = {
+  'border-t-emerald-500': 'border-emerald-500',
+  'border-t-cyan-500': 'border-cyan-500',
+  'border-t-blue-500': 'border-blue-500',
+  'border-t-purple-500': 'border-purple-500',
+  'border-t-pink-500': 'border-pink-500',
+  'border-t-red-500': 'border-red-500',
+  'border-t-orange-500': 'border-orange-500',
+  'border-t-yellow-500': 'border-yellow-500',
+  'border-t-green-500': 'border-green-500',
+  'border-t-teal-500': 'border-teal-500',
+  'border-t-slate-500': 'border-slate-500',
+  'border-t-zinc-500': 'border-zinc-500',
+}
+
+const COLOR_TEXT_MAP: Record<string, string> = {
+  'border-t-emerald-500': 'text-emerald-500',
+  'border-t-cyan-500': 'text-cyan-500',
+  'border-t-blue-500': 'text-blue-500',
+  'border-t-purple-500': 'text-purple-500',
+  'border-t-pink-500': 'text-pink-500',
+  'border-t-red-500': 'text-red-500',
+  'border-t-orange-500': 'text-orange-500',
+  'border-t-yellow-500': 'text-yellow-500',
+  'border-t-green-500': 'text-green-500',
+  'border-t-teal-500': 'text-teal-500',
+  'border-t-slate-500': 'text-slate-500',
+  'border-t-zinc-500': 'text-zinc-500',
+}
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -147,8 +208,9 @@ export function AddColumnButton() {
               <div className="grid grid-cols-3 gap-2">
                 {Object.entries(WORKFLOW_STEP_PRESETS).map(([key, preset]) => {
                   const Icon = ICONS[preset.icon] || Inbox
-                  const colorClass = preset.color.replace('border-t-', 'bg-').replace('-500', '-500/20')
-                  const borderClass = preset.color.replace('border-t-', 'border-')
+                  const bgClass = COLOR_BG_LIGHT_MAP[preset.color] || 'bg-zinc-500/20'
+                  const borderClass = COLOR_BORDER_MAP[preset.color] || 'border-zinc-500'
+                  const textClass = COLOR_TEXT_MAP[preset.color] || 'text-zinc-500'
 
                   return (
                     <button
@@ -157,16 +219,13 @@ export function AddColumnButton() {
                       onClick={() => setSelectedPreset(key)}
                       className={cn(
                         "p-3 rounded-lg border transition-all text-left",
-                        colorClass,
+                        bgClass,
                         selectedPreset === key
                           ? cn(borderClass, "ring-2 ring-offset-2 ring-offset-zinc-900 ring-teal-500")
                           : "border-transparent hover:border-zinc-700"
                       )}
                     >
-                      <Icon className={cn(
-                        "h-5 w-5 mb-1.5",
-                        preset.color.replace('border-t-', 'text-')
-                      )} />
+                      <Icon className={cn("h-5 w-5 mb-1.5", textClass)} />
                       <div className="text-xs font-medium text-zinc-200 truncate">
                         {preset.title}
                       </div>
@@ -225,7 +284,7 @@ export function AddColumnButton() {
                       onClick={() => setSelectedColor(color)}
                       className={cn(
                         "size-7 rounded-md border-2 transition-all",
-                        color.replace("border-t-", "bg-").replace("-500", "-500/80"),
+                        COLOR_BG_MAP[color] || 'bg-zinc-500',
                         selectedColor === color
                           ? "border-white scale-110"
                           : "border-transparent hover:scale-105"
