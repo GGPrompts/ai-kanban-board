@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { Board, Column, Task, COLUMN_PRESETS } from '@/types'
+import { BOARD_TEMPLATES, BoardTemplateKey } from './constants'
 
 // Generate unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 15)
@@ -34,6 +35,7 @@ interface BoardState {
 
   // Board actions
   createBoard: (name: string) => string
+  createBoardFromTemplate: (name: string, templateKey: BoardTemplateKey) => string
   updateBoard: (id: string, updates: Partial<Board>) => void
   deleteBoard: (id: string) => void
   setCurrentBoard: (id: string) => void
@@ -71,6 +73,33 @@ export const useBoardStore = create<BoardState>()(
           ...createDefaultBoard(),
           id: generateId(),
           name,
+        }
+        set((state) => ({
+          boards: [...state.boards, newBoard],
+          currentBoardId: newBoard.id,
+        }))
+        return newBoard.id
+      },
+
+      createBoardFromTemplate: (name, templateKey) => {
+        const template = BOARD_TEMPLATES[templateKey]
+        const newBoard: Board = {
+          id: generateId(),
+          name,
+          description: `Created from ${template.name} template`,
+          columns: template.columns.map((col, index) => ({
+            id: generateId(),
+            title: col.title,
+            color: col.color,
+            order: index,
+          })),
+          settings: {
+            theme: 'dark',
+            showEstimates: true,
+            showAgentStatus: true,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
         }
         set((state) => ({
           boards: [...state.boards, newBoard],

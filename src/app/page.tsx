@@ -1,6 +1,7 @@
 "use client"
 
 import { KanbanBoard } from "@/components/board"
+import { BoardSidebar } from "@/components/sidebar"
 
 export default function Home() {
   return (
@@ -15,10 +16,16 @@ export default function Home() {
         </p>
       </header>
 
-      {/* Board */}
-      <main className="flex-1 overflow-hidden">
-        <KanbanBoard />
-      </main>
+      {/* Main Content */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <BoardSidebar />
+
+        {/* Board */}
+        <main className="flex-1 overflow-hidden">
+          <KanbanBoard />
+        </main>
+      </div>
     </div>
   )
 }
