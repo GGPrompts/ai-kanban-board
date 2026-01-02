@@ -584,9 +584,46 @@
 }
 
 /* ============================================================================
- * Scrollbar (ggprompts compatible)
+ * Scrollbar - Global Theming
  * ============================================================================ */
 
+/* Global scrollbar styling - applies to everything */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border) / 0.5) transparent;
+}
+
+/* Webkit browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border) / 0.4);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.6);
+  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.3);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: hsl(var(--primary) / 0.8);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Utility: Hidden scrollbar */
 .scrollbar-hidden {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -596,6 +633,7 @@
   display: none;
 }
 
+/* Utility: More visible scrollbar for main content areas */
 .scrollbar-visible {
   scrollbar-width: thin;
   scrollbar-color: hsl(var(--border)) transparent;
@@ -607,7 +645,8 @@
 }
 
 .scrollbar-visible::-webkit-scrollbar-track {
-  background: transparent;
+  background: hsl(var(--muted) / 0.2);
+  border-radius: 4px;
 }
 
 .scrollbar-visible::-webkit-scrollbar-thumb {
