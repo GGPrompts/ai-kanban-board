@@ -588,39 +588,53 @@
  * ============================================================================ */
 
 /* Global scrollbar styling - applies to everything */
-* {
+*,
+*::before,
+*::after,
+[data-radix-portal],
+[data-radix-portal] * {
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--border) / 0.5) transparent;
+  scrollbar-color: hsl(168 40% 22% / 0.5) transparent;
 }
 
-/* Webkit browsers (Chrome, Edge, Safari) */
-::-webkit-scrollbar {
+/* Webkit browsers (Chrome, Edge, Safari) - including portals */
+::-webkit-scrollbar,
+[data-radix-portal] ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-::-webkit-scrollbar-track {
+::-webkit-scrollbar-track,
+[data-radix-portal] ::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 3px;
 }
 
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--border) / 0.4);
+::-webkit-scrollbar-thumb,
+[data-radix-portal] ::-webkit-scrollbar-thumb {
+  background: hsl(168 40% 22% / 0.5);
   border-radius: 3px;
-  transition: background 0.2s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--primary) / 0.6);
-  box-shadow: 0 0 8px rgba(var(--primary-rgb), 0.3);
+::-webkit-scrollbar-thumb:hover,
+[data-radix-portal] ::-webkit-scrollbar-thumb:hover {
+  background: hsl(168 84% 45% / 0.6);
+  box-shadow: 0 0 8px rgba(20, 184, 166, 0.3);
 }
 
-::-webkit-scrollbar-thumb:active {
-  background: hsl(var(--primary) / 0.8);
+::-webkit-scrollbar-thumb:active,
+[data-radix-portal] ::-webkit-scrollbar-thumb:active {
+  background: hsl(168 84% 45% / 0.8);
 }
 
-::-webkit-scrollbar-corner {
+::-webkit-scrollbar-corner,
+[data-radix-portal] ::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Force dark color scheme for scrollbars */
+html {
+  color-scheme: dark;
 }
 
 /* Utility: Hidden scrollbar */
