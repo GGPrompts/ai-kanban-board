@@ -6,6 +6,7 @@ import { PanelLeftClose, PanelLeft, LayoutGrid } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { BoardList } from './BoardList'
 import { CreateBoardDialog } from './CreateBoardDialog'
+import { BeadsHealthIndicator } from '@/components/shared/BeadsHealthIndicator'
 import { cn } from '@/lib/utils'
 import {
   Tooltip,
@@ -62,6 +63,10 @@ export function BoardSidebar() {
                 <p className="text-xs">Boards</p>
               </TooltipContent>
             </Tooltip>
+
+            <div className="mt-auto pb-2">
+              <BeadsHealthIndicator />
+            </div>
           </motion.div>
         ) : (
           <motion.aside
@@ -101,6 +106,11 @@ export function BoardSidebar() {
             </div>
 
             <BoardList onNewBoard={() => setIsCreateDialogOpen(true)} />
+
+            {/* Health Status */}
+            <div className="mt-auto border-t border-zinc-800 px-3 py-2">
+              <BeadsHealthIndicator showLabel />
+            </div>
           </motion.aside>
         )}
       </AnimatePresence>

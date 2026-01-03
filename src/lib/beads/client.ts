@@ -285,7 +285,7 @@ export async function updateIssue(
     args.push('--status', updates.status)
   }
   if (updates.priority) {
-    args.push('--priority', updates.priority)
+    args.push('--priority', String(updates.priority))
   }
   if (updates.type) {
     args.push('--type', updates.type)
@@ -355,7 +355,7 @@ export async function createIssue(
     args.push('--description', issue.description)
   }
   if (issue.priority) {
-    args.push('--priority', issue.priority)
+    args.push('--priority', String(issue.priority))
   }
   if (issue.type) {
     args.push('--type', issue.type)
