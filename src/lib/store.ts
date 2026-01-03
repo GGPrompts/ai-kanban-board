@@ -1,7 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Board, Column, Task, Message, AgentInfo, GitInfo, Commit, TaskClaudeSettings, COLUMN_PRESETS } from '@/types'
+import { Board, Column, Task, Message, AgentInfo, GitInfo, Commit, TaskClaudeSettings, COLUMN_PRESETS, ColumnState, UndoEntry } from '@/types'
 import { BOARD_TEMPLATES, BoardTemplateKey } from './constants'
+
+// Max undo history entries
+const MAX_UNDO_ENTRIES = 50
+
+// Debounce timer for column state updates
+let columnStateDebounceTimer: ReturnType<typeof setTimeout> | null = null
+const COLUMN_STATE_DEBOUNCE_MS = 100
 
 // Generate unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 15)
@@ -32,6 +39,12 @@ interface BoardState {
   currentBoardId: string | null
   tasks: Task[]
   selectedTaskId: string | null
+
+  // Per-column UI state (scroll position, selection)
+  columnStates: Record<string, ColumnState>
+
+  // Undo history stack (LIFO, max 50 entries)
+  undoStack: UndoEntry[]
 
   // Board actions
   createBoard: (name: string) => string
@@ -64,6 +77,17 @@ interface BoardState {
   createWorktree: (taskId: string) => void
   createPR: (taskId: string) => void
 
+  // Undo actions
+  pushUndo: (action: string, data: Task) => void
+  popUndo: () => UndoEntry | undefined
+
+  // Navigation actions
+  selectIssueById: (id: string) => { columnId: string; index: number } | null
+
+  // Column state actions
+  setColumnState: (columnId: string, state: Partial<ColumnState>) => void
+  getColumnState: (columnId: string) => ColumnState
+
   // Helpers
   getTasksByColumn: (columnId: string) => Task[]
   getCurrentBoard: () => Board | undefined
@@ -76,6 +100,8 @@ export const useBoardStore = create<BoardState>()(
       currentBoardId: null,
       tasks: [],
       selectedTaskId: null,
+      columnStates: {},
+      undoStack: [],
 
       // Board actions
       createBoard: (name) => {
@@ -385,6 +411,82 @@ export const useBoardStore = create<BoardState>()(
               : t
           ),
         }))
+      },
+
+      // Undo actions
+      pushUndo: (action, data) => {
+        set((state) => {
+          const entry: UndoEntry = {
+            action,
+            data: { ...data },
+            timestamp: new Date(),
+          }
+          const newStack = [entry, ...state.undoStack].slice(0, MAX_UNDO_ENTRIES)
+          return { undoStack: newStack }
+        })
+      },
+
+      popUndo: () => {
+        const { undoStack } = get()
+        if (undoStack.length === 0) return undefined
+
+        const [entry, ...rest] = undoStack
+        set({ undoStack: rest })
+        return entry
+      },
+
+      // Navigation actions
+      selectIssueById: (id) => {
+        const { tasks, columnStates } = get()
+        const task = tasks.find((t) => t.id === id)
+        if (!task) return null
+
+        // Get tasks in the same column to find index
+        const columnTasks = tasks
+          .filter((t) => t.columnId === task.columnId)
+          .sort((a, b) => a.order - b.order)
+        const index = columnTasks.findIndex((t) => t.id === id)
+
+        // Update column state with selected index
+        set({
+          selectedTaskId: id,
+          columnStates: {
+            ...columnStates,
+            [task.columnId]: {
+              ...columnStates[task.columnId],
+              selectedIndex: index,
+              scrollOffset: columnStates[task.columnId]?.scrollOffset ?? 0,
+            },
+          },
+        })
+
+        return { columnId: task.columnId, index }
+      },
+
+      // Column state actions
+      setColumnState: (columnId, state) => {
+        // Debounce column state updates
+        if (columnStateDebounceTimer) {
+          clearTimeout(columnStateDebounceTimer)
+        }
+        columnStateDebounceTimer = setTimeout(() => {
+          set((current) => ({
+            columnStates: {
+              ...current.columnStates,
+              [columnId]: {
+                selectedIndex: current.columnStates[columnId]?.selectedIndex ?? 0,
+                scrollOffset: current.columnStates[columnId]?.scrollOffset ?? 0,
+                ...state,
+              },
+            },
+          }))
+          columnStateDebounceTimer = null
+        }, COLUMN_STATE_DEBOUNCE_MS)
+      },
+
+      getColumnState: (columnId) => {
+        const { columnStates } = get()
+        return columnStates[columnId] ?? { selectedIndex: 0, scrollOffset: 0 }
       },
 
       // Helpers

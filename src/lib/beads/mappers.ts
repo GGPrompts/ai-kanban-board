@@ -1,0 +1,200 @@
+/**
+ * Beads to Kanban Mappers
+ * Bidirectional mapping between beads issues and kanban tasks
+ */
+
+import type { BeadsIssue, BeadsStatus, BeadsPriority } from './types'
+import type { Task, Priority, Column } from '@/types'
+
+/**
+ * Map beads priority to kanban priority
+ * 1 -> urgent, 2 -> high, 3 -> medium, 4 -> low
+ * Also supports string values: critical -> urgent, high -> high, etc.
+ */
+export function mapBeadsPriorityToKanban(priority: BeadsPriority): Priority {
+  // Handle numeric priorities (1-4)
+  if (typeof priority === 'number') {
+    const numMapping: Record<number, Priority> = {
+      1: 'urgent',
+      2: 'high',
+      3: 'medium',
+      4: 'low',
+    }
+    return numMapping[priority] ?? 'medium'
+  }
+  // Handle string priorities
+  const strMapping: Record<string, Priority> = {
+    critical: 'urgent',
+    high: 'high',
+    medium: 'medium',
+    low: 'low',
+  }
+  return strMapping[priority] ?? 'medium'
+}
+
+/**
+ * Map kanban priority to beads priority (numeric)
+ * urgent -> 1, high -> 2, medium -> 3, low -> 4
+ */
+export function mapKanbanPriorityToBeads(priority: Priority): 1 | 2 | 3 | 4 {
+  const mapping: Record<Priority, 1 | 2 | 3 | 4> = {
+    urgent: 1,
+    high: 2,
+    medium: 3,
+    low: 4,
+  }
+  return mapping[priority] ?? 3
+}
+
+/**
+ * Default status to column mapping
+ * Can be overridden with custom column configuration
+ */
+export const DEFAULT_STATUS_COLUMN_MAP: Record<BeadsStatus, string> = {
+  open: 'Ready',
+  ready: 'Ready',
+  blocked: 'Blocked',
+  in_progress: 'In Progress',
+  'in-progress': 'In Progress',
+  done: 'Done',
+  closed: 'Done',
+}
+
+/**
+ * Find the best matching column for a beads status
+ * Tries exact match first, then falls back to default mapping
+ */
+export function findColumnForStatus(
+  status: BeadsStatus,
+  columns: Column[],
+  customMapping?: Record<BeadsStatus, string>
+): Column | undefined {
+  const mapping = customMapping ?? DEFAULT_STATUS_COLUMN_MAP
+  const targetTitle = mapping[status] ?? 'Ready' // Default to Ready for unknown statuses
+
+  // Try exact title match (case-insensitive)
+  let column = columns.find(
+    (c) => c.title?.toLowerCase() === targetTitle.toLowerCase()
+  )
+
+  // Fallback: try partial match
+  if (!column) {
+    column = columns.find((c) =>
+      c.title?.toLowerCase().includes(targetTitle.toLowerCase())
+    )
+  }
+
+  // Last resort: return first column
+  return column ?? columns[0]
+}
+
+/**
+ * Map column title to beads status
+ */
+export function mapColumnToBeadsStatus(column: Column): BeadsStatus {
+  const title = (column.title ?? '').toLowerCase()
+
+  if (title.includes('done') || title.includes('complete') || title.includes('closed')) {
+    return 'closed'
+  }
+  if (title.includes('progress') || title.includes('working') || title.includes('active')) {
+    return 'in_progress'
+  }
+  if (title.includes('blocked') || title.includes('stuck')) {
+    return 'blocked'
+  }
+  if (title.includes('ready') || title.includes('todo') || title.includes('backlog')) {
+    return 'open'
+  }
+
+  // Default to open for unknown columns
+  return 'open'
+}
+
+/**
+ * Convert a beads issue to a kanban Task
+ */
+export function mapBeadsToTask(
+  issue: BeadsIssue,
+  columnId: string,
+  order: number = 0
+): Task {
+  return {
+    id: issue.id,
+    title: issue.title,
+    description: issue.description,
+    columnId,
+    order,
+    priority: mapBeadsPriorityToKanban(issue.priority),
+    labels: issue.labels ?? [],
+    estimate: issue.estimate,
+    assignee: issue.assignee,
+    // Map git info if available
+    git: issue.branch || issue.pr
+      ? {
+          branch: issue.branch,
+          prNumber: issue.pr,
+        }
+      : undefined,
+    createdAt: issue.createdAt ? new Date(issue.createdAt) : new Date(),
+    updatedAt: issue.updatedAt ? new Date(issue.updatedAt) : new Date(),
+  }
+}
+
+/**
+ * Convert a kanban Task to a partial beads issue update
+ * Only includes fields that should be synced back to beads
+ */
+export function mapTaskToBeadsUpdate(
+  task: Task,
+  column: Column
+): Partial<BeadsIssue> {
+  return {
+    title: task.title,
+    description: task.description,
+    status: mapColumnToBeadsStatus(column),
+    priority: mapKanbanPriorityToBeads(task.priority),
+    labels: task.labels.length > 0 ? task.labels : undefined,
+    assignee: task.assignee,
+    branch: task.git?.branch,
+    pr: task.git?.prNumber,
+    estimate: task.estimate,
+  }
+}
+
+/**
+ * Group beads issues by their mapped column
+ */
+export function groupIssuesByColumn(
+  issues: BeadsIssue[],
+  columns: Column[],
+  customMapping?: Record<BeadsStatus, string>
+): Map<string, Task[]> {
+  const grouped = new Map<string, Task[]>()
+
+  // Initialize all columns with empty arrays
+  for (const column of columns) {
+    grouped.set(column.id, [])
+  }
+
+  // Map and group issues
+  for (const issue of issues) {
+    const column = findColumnForStatus(issue.status, columns, customMapping)
+    if (column) {
+      const tasks = grouped.get(column.id) ?? []
+      const task = mapBeadsToTask(issue, column.id, tasks.length)
+      tasks.push(task)
+      grouped.set(column.id, tasks)
+    }
+  }
+
+  return grouped
+}
+
+/**
+ * Check if a task originated from beads (by ID format)
+ * Beads IDs typically follow pattern: project-xxx (e.g., kanban-mo4)
+ */
+export function isBeadsTask(task: Task): boolean {
+  return /^[a-z]+-[a-z0-9]+$/i.test(task.id)
+}

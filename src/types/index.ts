@@ -381,3 +381,16 @@ export interface TaskActivity {
   description: string
   timestamp: Date
 }
+
+// Per-column UI state (scroll position, selection)
+export interface ColumnState {
+  selectedIndex: number
+  scrollOffset: number
+}
+
+// Undo history entry for state restoration
+export interface UndoEntry {
+  action: string
+  data: Task
+  timestamp: Date
+}

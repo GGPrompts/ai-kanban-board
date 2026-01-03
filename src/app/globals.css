@@ -356,6 +356,7 @@
 .agent-station {
   min-width: 340px;
   width: 340px;
+  max-height: calc(100vh - 180px);
   display: flex;
   flex-direction: column;
   border-radius: var(--radius-lg);

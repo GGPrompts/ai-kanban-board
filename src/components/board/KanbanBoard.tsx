@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -22,15 +22,23 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Database, HardDrive, RefreshCw, AlertCircle } from 'lucide-react'
 import { useBoardStore } from '@/lib/store'
+import { useBeadsIssues, useBeadsAvailable } from '@/hooks/useBeadsIssues'
 import { KanbanColumn } from './KanbanColumn'
 import { AddColumnButton } from './AddColumnButton'
 import { Task, Column } from '@/types'
 import { cn } from '@/lib/utils'
 
-export function KanbanBoard() {
-  const { getCurrentBoard, tasks, moveTask, reorderTasks, reorderColumns, getTasksByColumn } = useBoardStore()
+export interface KanbanBoardProps {
+  /** Use beads as data source instead of local state */
+  useBeadsSource?: boolean
+  /** Callback when beads mode changes */
+  onBeadsModeChange?: (enabled: boolean) => void
+}
+
+export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: KanbanBoardProps) {
+  const { getCurrentBoard, tasks: localTasks, moveTask, reorderTasks, reorderColumns, getTasksByColumn } = useBoardStore()
   const board = getCurrentBoard()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -39,6 +47,49 @@ export function KanbanBoard() {
   const [hasMounted, setHasMounted] = useState(false)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [beadsMode, setBeadsMode] = useState(useBeadsSource)
+
+  // Check if beads CLI is available
+  const beadsAvailable = useBeadsAvailable()
+
+  // Fetch beads issues when in beads mode
+  const {
+    tasksByColumn: beadsTasksByColumn,
+    isLoading: beadsLoading,
+    error: beadsError,
+    refresh: refreshBeads,
+    syncTaskColumn,
+  } = useBeadsIssues({
+    columns: board?.columns ?? [],
+    enabled: beadsMode && beadsAvailable,
+    refreshInterval: 30000, // Refresh every 30 seconds
+  })
+
+  // Get tasks for a column - either from beads or local store
+  const getEffectiveTasksByColumn = useCallback(
+    (columnId: string): Task[] => {
+      if (beadsMode && beadsAvailable) {
+        return beadsTasksByColumn.get(columnId) ?? []
+      }
+      return getTasksByColumn(columnId)
+    },
+    [beadsMode, beadsAvailable, beadsTasksByColumn, getTasksByColumn]
+  )
+
+  // All tasks for drag handling
+  const tasks = useMemo(() => {
+    if (beadsMode && beadsAvailable) {
+      return Array.from(beadsTasksByColumn.values()).flat()
+    }
+    return localTasks
+  }, [beadsMode, beadsAvailable, beadsTasksByColumn, localTasks])
+
+  // Toggle beads mode
+  const toggleBeadsMode = useCallback(() => {
+    const newMode = !beadsMode
+    setBeadsMode(newMode)
+    onBeadsModeChange?.(newMode)
+  }, [beadsMode, onBeadsModeChange])
 
   // Wait for hydration to complete before rendering dynamic content
   useEffect(() => {
@@ -134,6 +185,9 @@ export function KanbanBoard() {
       // Skip if dragging a column (handled in dragEnd)
       if (activeData?.type === 'column') return
 
+      // Skip live updates in beads mode - we'll sync on drag end
+      if (beadsMode && beadsAvailable) return
+
       const activeId = active.id as string
       const overId = over.id as string
 
@@ -156,11 +210,11 @@ export function KanbanBoard() {
         moveTask(activeId, overTask.columnId, overIndex)
       }
     },
-    [tasks, board, getTasksByColumn, moveTask]
+    [tasks, board, getTasksByColumn, moveTask, beadsMode, beadsAvailable]
   )
 
   const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
+    async (event: DragEndEvent) => {
       const { active, over } = event
       const activeData = active.data.current
 
@@ -174,7 +228,7 @@ export function KanbanBoard() {
 
       if (activeId === overId) return
 
-      // Handle column reordering
+      // Handle column reordering (not synced to beads)
       if (activeData?.type === 'column' && board) {
         const sortedColumns = [...board.columns].sort((a, b) => a.order - b.order)
         const oldIndex = sortedColumns.findIndex((c) => c.id === activeId)
@@ -189,7 +243,37 @@ export function KanbanBoard() {
         return
       }
 
-      // Handle task reordering
+      // Handle task movement in beads mode
+      if (beadsMode && beadsAvailable && board) {
+        const draggedTask = tasks.find((t) => t.id === activeId)
+        if (!draggedTask) return
+
+        // Determine target column
+        let targetColumnId: string | null = null
+
+        // Check if dropped on a column directly
+        const overColumn = board.columns.find((c) => c.id === overId)
+        if (overColumn) {
+          targetColumnId = overColumn.id
+        } else {
+          // Check if dropped on a task
+          const overTask = tasks.find((t) => t.id === overId)
+          if (overTask) {
+            targetColumnId = overTask.columnId
+          }
+        }
+
+        // Sync to beads if column changed
+        if (targetColumnId && targetColumnId !== draggedTask.columnId) {
+          const targetColumn = board.columns.find((c) => c.id === targetColumnId)
+          if (targetColumn) {
+            await syncTaskColumn(activeId, targetColumn)
+          }
+        }
+        return
+      }
+
+      // Handle task reordering (local mode)
       const activeTask = tasks.find((t) => t.id === activeId)
       const overTask = tasks.find((t) => t.id === overId)
 
@@ -207,7 +291,7 @@ export function KanbanBoard() {
         }
       }
     },
-    [tasks, board, getTasksByColumn, reorderTasks, reorderColumns]
+    [tasks, board, getTasksByColumn, reorderTasks, reorderColumns, beadsMode, beadsAvailable, syncTaskColumn]
   )
 
   // Show loading state during hydration to prevent mismatch
@@ -235,8 +319,56 @@ export function KanbanBoard() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.4 }}
-      className="flex-1 relative"
+      className="flex-1 relative flex flex-col"
     >
+      {/* Beads Mode Toggle Bar */}
+      {beadsAvailable && (
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-zinc-800/50">
+          <button
+            onClick={toggleBeadsMode}
+            className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+              beadsMode
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                : "bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:text-zinc-300"
+            )}
+          >
+            {beadsMode ? (
+              <Database className="w-3.5 h-3.5" />
+            ) : (
+              <HardDrive className="w-3.5 h-3.5" />
+            )}
+            {beadsMode ? 'Beads Issues' : 'Local Tasks'}
+          </button>
+
+          {beadsMode && (
+            <>
+              <button
+                onClick={() => refreshBeads()}
+                disabled={beadsLoading}
+                className={cn(
+                  "flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-all",
+                  "text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50",
+                  beadsLoading && "opacity-50 cursor-not-allowed"
+                )}
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", beadsLoading && "animate-spin")} />
+                Refresh
+              </button>
+
+              {beadsError && (
+                <div className="flex items-center gap-1.5 text-xs text-red-400">
+                  <AlertCircle className="w-3.5 h-3.5" />
+                  {beadsError}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Main board area */}
+      <div className="flex-1 relative overflow-hidden">
       {/* Scroll Left Button */}
       {canScrollLeft && (
         <button
@@ -287,7 +419,7 @@ export function KanbanBoard() {
                 <KanbanColumn
                   key={column.id}
                   column={column}
-                  tasks={getTasksByColumn(column.id)}
+                  tasks={getEffectiveTasksByColumn(column.id)}
                 />
               ))}
 
@@ -318,6 +450,7 @@ export function KanbanBoard() {
             )}
           </DragOverlay>
         </DndContext>
+      </div>
       </div>
     </motion.div>
   )

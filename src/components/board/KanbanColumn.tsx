@@ -324,9 +324,9 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
             )}
           </AnimatePresence>
 
-          <div className="h-full max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-visible">
+          <div className="flex-1 overflow-y-auto scrollbar-visible">
             <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
-              <div className="p-2 space-y-2">
+              <div className="p-2 pb-16 space-y-2">
                 {tasks.length === 0 ? (
                   <div className="text-center py-12 text-zinc-600 text-xs mono">
                     {agentMeta && AgentIcon ? (
@@ -353,7 +353,9 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
         </div>
 
         {/* Add Task Button */}
-        <AddTaskButton columnId={column.id} />
+        <div className="shrink-0 relative z-10 border-t border-zinc-800/50 bg-zinc-900/50">
+          <AddTaskButton columnId={column.id} />
+        </div>
       </motion.div>
 
       {/* Column Configuration Dialog */}
