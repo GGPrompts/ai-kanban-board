@@ -119,6 +119,10 @@ export function mapBeadsToTask(
   columnId: string,
   order: number = 0
 ): Task {
+  // Determine if task is ready (no blockers or status is explicitly 'ready')
+  const hasBlockers = issue.blockedBy && issue.blockedBy.length > 0
+  const isReady = issue.status === 'ready' || (!hasBlockers && issue.status === 'open')
+
   return {
     id: issue.id,
     title: issue.title,
@@ -127,6 +131,13 @@ export function mapBeadsToTask(
     order,
     priority: mapBeadsPriorityToKanban(issue.priority),
     labels: issue.labels ?? [],
+    // Dependency graph
+    blockedBy: issue.blockedBy,
+    blocking: issue.blocks,
+    isReady,
+    // Critical path: high/urgent priority + blocks other tasks
+    criticalPath: (issue.priority === 1 || issue.priority === 'critical' || issue.priority === 2 || issue.priority === 'high')
+      && issue.blocks && issue.blocks.length > 0,
     estimate: issue.estimate,
     assignee: issue.assignee,
     // Map git info if available

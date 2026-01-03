@@ -126,6 +126,12 @@ export interface Task {
   priority: Priority
   labels: string[]
 
+  // Dependency graph
+  blockedBy?: string[]     // IDs of tasks that block this one
+  blocking?: string[]       // IDs of tasks this one blocks
+  isReady?: boolean         // True if no blockers or all blockers resolved
+  criticalPath?: boolean    // True if this is a zero-slack keystone task
+
   // AI Agent integration
   agent?: AgentInfo
 

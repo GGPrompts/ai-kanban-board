@@ -20,6 +20,10 @@ import {
   Search,
   Circle,
   MessageSquare,
+  AlertTriangle,
+  Unlock,
+  CheckCircle2,
+  Link,
 } from "lucide-react"
 import { Task, AgentType, PRIORITY_COLORS, AGENT_META, AGENT_STATUS_META } from "@/types"
 import { useBoardStore } from "@/lib/store"
@@ -107,6 +111,12 @@ export function KanbanCard({ task, isOverlay = false, columnAgent }: KanbanCardP
     ? TOOL_ICONS[lastActivity.tool] || TOOL_ICONS.default
     : null
 
+  // Dependency state
+  const hasBlockers = task.blockedBy && task.blockedBy.length > 0
+  const blocksOthers = task.blocking && task.blocking.length > 0
+  const isReady = task.isReady
+  const isCriticalPath = task.criticalPath
+
   // Get accent color for the card
   const cardAccent = agentMeta
     ? `hsl(var(--agent-${effectiveAgent === 'claude-code' ? 'claude' : effectiveAgent}))`
@@ -137,11 +147,17 @@ export function KanbanCard({ task, isOverlay = false, columnAgent }: KanbanCardP
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.2 }}
       data-has-agent={!!effectiveAgent}
+      data-critical-path={isCriticalPath}
+      data-blocked={hasBlockers}
+      data-ready={isReady && !hasBlockers}
       className={cn(
         "kanban-card group relative p-3",
         isDragging && "opacity-50 scale-[1.02] border-glow",
         hasPRReadyForReview && "ring-1 ring-emerald-500/30 shadow-lg shadow-emerald-500/10",
-        isAgentRunning && "agent-active"
+        isAgentRunning && "agent-active",
+        hasBlockers && "ring-1 ring-red-500/30 border-red-500/20",
+        isCriticalPath && "critical-path-glow",
+        isReady && !hasBlockers && "ring-1 ring-cyan-500/20 border-cyan-500/10"
       )}
       onClick={handleClick}
     >
@@ -164,6 +180,10 @@ export function KanbanCard({ task, isOverlay = false, columnAgent }: KanbanCardP
           lastActivity={lastActivity}
           ToolIcon={ToolIcon}
           columnAgent={columnAgent}
+          hasBlockers={hasBlockers}
+          blocksOthers={blocksOthers}
+          isReady={isReady}
+          isCriticalPath={isCriticalPath}
         />
       </div>
     </motion.div>
@@ -178,6 +198,10 @@ interface CardContentProps {
   lastActivity?: import('@/types').AgentActivity
   ToolIcon?: React.ComponentType<{ className?: string }> | null
   columnAgent?: AgentType
+  hasBlockers?: boolean
+  blocksOthers?: boolean
+  isReady?: boolean
+  isCriticalPath?: boolean
 }
 
 function CardContent({
@@ -188,12 +212,63 @@ function CardContent({
   lastActivity,
   ToolIcon,
   columnAgent,
+  hasBlockers,
+  blocksOthers,
+  isReady,
+  isCriticalPath,
 }: CardContentProps) {
   const hasTaskAgent = !!task.agent
   const inheritedFromColumn = !hasTaskAgent && !!columnAgent
+  const blockerCount = task.blockedBy?.length ?? 0
+  const blockingCount = task.blocking?.length ?? 0
 
   return (
     <>
+      {/* Dependency indicators row */}
+      {(hasBlockers || blocksOthers || isCriticalPath || isReady) && (
+        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          {/* Blocked by indicator */}
+          {hasBlockers && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-500/15 border border-red-500/30">
+              <AlertTriangle className="h-3 w-3 text-red-400" />
+              <span className="text-[10px] font-medium text-red-400 mono">
+                Blocked by {blockerCount}
+              </span>
+            </div>
+          )}
+
+          {/* Blocks others indicator */}
+          {blocksOthers && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30">
+              <Unlock className="h-3 w-3 text-amber-400" />
+              <span className="text-[10px] font-medium text-amber-400 mono">
+                Unblocks {blockingCount}
+              </span>
+            </div>
+          )}
+
+          {/* Critical path indicator */}
+          {isCriticalPath && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/15 border border-purple-500/30">
+              <Link className="h-3 w-3 text-purple-400" />
+              <span className="text-[10px] font-medium text-purple-400 mono">
+                Critical
+              </span>
+            </div>
+          )}
+
+          {/* Ready indicator (only show if not blocked) */}
+          {isReady && !hasBlockers && (
+            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/15 border border-cyan-500/30">
+              <CheckCircle2 className="h-3 w-3 text-cyan-400" />
+              <span className="text-[10px] font-medium text-cyan-400 mono">
+                Ready
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Title */}
       <h4 className="text-sm font-medium text-zinc-100 leading-tight mb-2 line-clamp-2">
         {task.title}

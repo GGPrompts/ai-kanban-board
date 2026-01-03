@@ -482,6 +482,41 @@
   }
 }
 
+/* Critical Path Card - Zero-slack keystone task glow */
+.kanban-card.critical-path-glow {
+  border-color: hsl(271 91% 65% / 0.5);
+  animation: critical-pulse 2.5s ease-in-out infinite;
+  position: relative;
+}
+
+.kanban-card.critical-path-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--agent-claude-rgb), 0.15) 0%,
+    transparent 50%,
+    rgba(var(--agent-gemini-rgb), 0.1) 100%
+  );
+  pointer-events: none;
+  z-index: -1;
+}
+
+@keyframes critical-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 15px rgba(var(--agent-claude-rgb), 0.25),
+      0 0 30px rgba(var(--agent-claude-rgb), 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 25px rgba(var(--agent-claude-rgb), 0.4),
+      0 0 50px rgba(var(--agent-claude-rgb), 0.2);
+  }
+}
+
 /* ============================================================================
  * Animations
  * ============================================================================ */

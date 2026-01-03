@@ -12,7 +12,7 @@ import {
   getIssue,
   safe,
 } from '../beads/client'
-import type { BeadsIssue } from '../beads/types'
+import type { BeadsIssue, BeadsPriority } from '../beads/types'
 
 const execAsync = promisify(exec)
 
@@ -103,7 +103,11 @@ function escapeXml(str: string): string {
 /**
  * Format priority as numeric value for sorting
  */
-function priorityToNumber(priority: string): number {
+function priorityToNumber(priority: BeadsPriority): number {
+  // Handle numeric priorities directly
+  if (typeof priority === 'number') {
+    return priority
+  }
   const map: Record<string, number> = {
     critical: 1,
     high: 2,
@@ -190,7 +194,7 @@ export function formatContextForWorker(context: BeadsContext): string {
     const task = context.currentTask
     const attrs = [`issue-id="${escapeXml(task.id)}"`]
     if (task.priority) {
-      attrs.push(`priority="${escapeXml(task.priority)}"`)
+      attrs.push(`priority="${escapeXml(String(task.priority))}"`)
     }
     if (task.type) {
       attrs.push(`type="${escapeXml(task.type)}"`)
