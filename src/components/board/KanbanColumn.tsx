@@ -21,6 +21,7 @@ import {
   MoreHorizontal,
   FileText,
   GripVertical,
+  Filter,
 } from 'lucide-react'
 import { Column, Task, AgentType, AGENT_META, AGENT_STATUS_META } from '@/types'
 import { useBoardStore } from '@/lib/store'
@@ -248,6 +249,21 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
                   <span className="text-zinc-600">/{column.wipLimit}</span>
                 )}
               </span>
+
+              {/* BQL filter indicator */}
+              {column.isDynamic && column.bqlQuery && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="p-1 rounded bg-teal-500/20 border border-teal-500/30">
+                      <Filter className="h-3 w-3 text-teal-400" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="text-[10px] text-zinc-400 uppercase mb-1">BQL Filter</p>
+                    <p className="text-xs font-mono text-teal-300">{column.bqlQuery}</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
 
               {/* Prompt indicator */}
               {column.agentConfig?.systemPrompt && (

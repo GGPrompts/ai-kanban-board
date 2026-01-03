@@ -18,6 +18,10 @@ export interface Column {
   wipLimit?: number // Work-in-progress limit
   isCollapsed?: boolean
 
+  // BQL (Beads Query Language) for dynamic filtering
+  bqlQuery?: string // e.g., "status:open AND priority:1-2"
+  isDynamic?: boolean // True if column shows filtered results instead of assigned tasks
+
   // Agent Station Configuration
   assignedAgent?: AgentType // Agent assigned to this workflow step
   agentConfig?: ColumnAgentConfig // Agent-specific configuration for this column

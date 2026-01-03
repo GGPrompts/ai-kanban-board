@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Sparkles,
   Gem,
@@ -11,6 +11,10 @@ import {
   Bot,
   Trash2,
   Settings2,
+  Filter,
+  AlertCircle,
+  CheckCircle2,
+  Search,
 } from 'lucide-react'
 import {
   Dialog,
@@ -28,6 +32,7 @@ import { Button } from '@/components/ui/button'
 import { useBoardStore } from '@/lib/store'
 import { Column, AgentType, AGENT_META, COLUMN_COLORS } from '@/types'
 import { cn } from '@/lib/utils'
+import { validateQuery, BQL_COLUMN_PRESETS } from '@/lib/bql'
 
 // Explicit mapping for Tailwind to see the classes
 const COLOR_BG_MAP: Record<string, string> = {
@@ -73,6 +78,14 @@ export function ColumnConfigDialog({ column, open, onOpenChange }: ColumnConfigD
   const [autoStart, setAutoStart] = useState(false)
   const [autoAdvance, setAutoAdvance] = useState(false)
   const [wipLimit, setWipLimit] = useState<number | undefined>(undefined)
+  const [bqlQuery, setBqlQuery] = useState('')
+  const [isDynamic, setIsDynamic] = useState(false)
+
+  // Validate BQL query
+  const queryValidation = useMemo(() => {
+    if (!bqlQuery.trim()) return { valid: true }
+    return validateQuery(bqlQuery)
+  }, [bqlQuery])
 
   // Initialize form when column changes
   useEffect(() => {
@@ -84,12 +97,17 @@ export function ColumnConfigDialog({ column, open, onOpenChange }: ColumnConfigD
       setAutoStart(column.agentConfig?.autoStart || false)
       setAutoAdvance(column.agentConfig?.autoAdvance || false)
       setWipLimit(column.wipLimit)
+      setBqlQuery(column.bqlQuery || '')
+      setIsDynamic(column.isDynamic || false)
     }
   }, [column])
 
   if (!column || !board) return null
 
   const handleSave = () => {
+    // Don't save if BQL query is invalid
+    if (!queryValidation.valid) return
+
     updateColumn(board.id, column.id, {
       title,
       color,
@@ -100,6 +118,8 @@ export function ColumnConfigDialog({ column, open, onOpenChange }: ColumnConfigD
         autoAdvance,
       } : undefined,
       wipLimit,
+      bqlQuery: bqlQuery.trim() || undefined,
+      isDynamic,
     })
     onOpenChange(false)
   }
@@ -180,6 +200,106 @@ export function ColumnConfigDialog({ column, open, onOpenChange }: ColumnConfigD
             <p className="text-[10px] text-zinc-600">
               Max tasks allowed in this column
             </p>
+          </div>
+
+          {/* BQL Dynamic Filter */}
+          <div className="space-y-3 pt-2 border-t border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-teal-500" />
+                <Label className="text-zinc-400 text-xs uppercase tracking-wide">
+                  Dynamic Filter (BQL)
+                </Label>
+              </div>
+              <Switch
+                checked={isDynamic}
+                onCheckedChange={setIsDynamic}
+              />
+            </div>
+
+            {isDynamic && (
+              <div className="space-y-3">
+                {/* Query Input */}
+                <div className="space-y-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input
+                      value={bqlQuery}
+                      onChange={(e) => setBqlQuery(e.target.value)}
+                      placeholder="status:open AND priority:1-2"
+                      className={cn(
+                        "pl-9 bg-zinc-900 border-zinc-700 text-zinc-100 font-mono text-sm",
+                        !queryValidation.valid && bqlQuery && "border-red-500 focus-visible:ring-red-500"
+                      )}
+                    />
+                    {bqlQuery && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {queryValidation.valid ? (
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {!queryValidation.valid && bqlQuery && (
+                    <p className="text-[10px] text-red-400 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      {queryValidation.error}
+                    </p>
+                  )}
+                </div>
+
+                {/* Query Presets */}
+                <div className="space-y-2">
+                  <Label className="text-zinc-500 text-[10px] uppercase tracking-wide">
+                    Quick Filters
+                  </Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {Object.entries(BQL_COLUMN_PRESETS).map(([key, preset]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => {
+                          setBqlQuery(preset.query)
+                          setTitle(preset.name)
+                          setColor(preset.color)
+                        }}
+                        className={cn(
+                          "px-2 py-1 text-[10px] rounded-md border transition-colors",
+                          "border-zinc-700 hover:border-teal-500/50 hover:bg-teal-500/10",
+                          "text-zinc-400 hover:text-zinc-200"
+                        )}
+                      >
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Query Syntax Help */}
+                <div className="rounded-md bg-zinc-800/50 p-2 text-[10px] text-zinc-500 space-y-1">
+                  <p className="font-medium text-zinc-400">Query Syntax:</p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                    <span><code className="text-teal-400">status:</code> open, closed, blocked</span>
+                    <span><code className="text-teal-400">priority:</code> 1-4 or low/high</span>
+                    <span><code className="text-teal-400">type:</code> bug, feature, chore</span>
+                    <span><code className="text-teal-400">labels:</code> any label name</span>
+                    <span><code className="text-teal-400">assignee:</code> name or @me</span>
+                    <span><code className="text-teal-400">blocked:</code> true/false</span>
+                  </div>
+                  <p className="pt-1 text-zinc-400">
+                    Use <code className="text-violet-400">AND</code>, <code className="text-violet-400">OR</code>, <code className="text-violet-400">NOT</code> and parentheses for complex queries
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!isDynamic && (
+              <p className="text-[10px] text-zinc-600">
+                Enable to filter tasks dynamically instead of manual assignment
+              </p>
+            )}
           </div>
 
           {/* Agent Selection */}
