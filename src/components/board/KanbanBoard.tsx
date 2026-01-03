@@ -25,10 +25,12 @@ import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Database, HardDrive, RefreshCw, AlertCircle } from 'lucide-react'
 import { useBoardStore } from '@/lib/store'
 import { useBeadsIssues, useBeadsAvailable } from '@/hooks/useBeadsIssues'
+import { GraphMetricsProvider } from '@/contexts/GraphMetricsContext'
 import { KanbanColumn } from './KanbanColumn'
 import { AddColumnButton } from './AddColumnButton'
 import { Task, Column } from '@/types'
 import { cn } from '@/lib/utils'
+import { compileQuery, filterItems } from '@/lib/bql'
 
 export interface KanbanBoardProps {
   /** Use beads as data source instead of local state */
@@ -66,14 +68,28 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
   })
 
   // Get tasks for a column - either from beads or local store
+  // Supports BQL dynamic filtering for columns with bqlQuery
   const getEffectiveTasksByColumn = useCallback(
-    (columnId: string): Task[] => {
-      if (beadsMode && beadsAvailable) {
-        return beadsTasksByColumn.get(columnId) ?? []
+    (column: Column): Task[] => {
+      // If column has BQL dynamic filter, apply it to all tasks
+      if (column.isDynamic && column.bqlQuery?.trim()) {
+        const allTasks = beadsMode && beadsAvailable
+          ? Array.from(beadsTasksByColumn.values()).flat()
+          : localTasks
+
+        const filter = compileQuery(column.bqlQuery)
+        if (filter.isValid && filter.ast) {
+          return filterItems(allTasks, filter).sort((a, b) => a.order - b.order)
+        }
       }
-      return getTasksByColumn(columnId)
+
+      // Otherwise, return tasks assigned to this column
+      if (beadsMode && beadsAvailable) {
+        return beadsTasksByColumn.get(column.id) ?? []
+      }
+      return getTasksByColumn(column.id)
     },
-    [beadsMode, beadsAvailable, beadsTasksByColumn, getTasksByColumn]
+    [beadsMode, beadsAvailable, beadsTasksByColumn, getTasksByColumn, localTasks]
   )
 
   // All tasks for drag handling
@@ -406,29 +422,30 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
         ref={scrollContainerRef}
         className="h-full overflow-x-auto overflow-y-hidden px-6 py-4 scrollbar-visible"
       >
-        <DndContext
-          sensors={sensors}
-          collisionDetection={collisionDetection}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
-            <div className="flex gap-4 h-full pb-4">
-              {sortedColumns.map((column) => (
-                <KanbanColumn
-                  key={column.id}
-                  column={column}
-                  tasks={getEffectiveTasksByColumn(column.id)}
-                />
-              ))}
+        <GraphMetricsProvider tasks={tasks}>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={collisionDetection}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
+              <div className="flex gap-4 h-full pb-4">
+                {sortedColumns.map((column) => (
+                  <KanbanColumn
+                    key={column.id}
+                    column={column}
+                    tasks={getEffectiveTasksByColumn(column)}
+                  />
+                ))}
 
-              {/* Add Column Button */}
-              <AddColumnButton />
-            </div>
-          </SortableContext>
+                {/* Add Column Button */}
+                <AddColumnButton />
+              </div>
+            </SortableContext>
 
-          <DragOverlay>
+            <DragOverlay>
             {activeTask && (
               <div className="kanban-card p-3 rounded-lg opacity-90 rotate-3 scale-105">
                 <h4 className="text-sm font-medium text-white">{activeTask.title}</h4>
@@ -448,8 +465,9 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
                 </div>
               </div>
             )}
-          </DragOverlay>
-        </DndContext>
+            </DragOverlay>
+          </DndContext>
+        </GraphMetricsProvider>
       </div>
       </div>
     </motion.div>

@@ -27,6 +27,7 @@ import {
 } from "lucide-react"
 import { Task, AgentType, PRIORITY_COLORS, AGENT_META, AGENT_STATUS_META } from "@/types"
 import { useBoardStore } from "@/lib/store"
+import { useGraphMetricsContextSafe } from "@/contexts/GraphMetricsContext"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
@@ -67,6 +68,10 @@ interface KanbanCardProps {
 
 export function KanbanCard({ task, isOverlay = false, columnAgent }: KanbanCardProps) {
   const setSelectedTask = useBoardStore((state) => state.setSelectedTask)
+  const graphMetrics = useGraphMetricsContextSafe()
+
+  // Get graph-computed metrics for this task
+  const taskMetrics = graphMetrics?.getMetrics(task.id)
 
   const {
     attributes,
@@ -111,11 +116,15 @@ export function KanbanCard({ task, isOverlay = false, columnAgent }: KanbanCardP
     ? TOOL_ICONS[lastActivity.tool] || TOOL_ICONS.default
     : null
 
-  // Dependency state
-  const hasBlockers = task.blockedBy && task.blockedBy.length > 0
-  const blocksOthers = task.blocking && task.blocking.length > 0
-  const isReady = task.isReady
-  const isCriticalPath = task.criticalPath
+  // Dependency state - prefer graph metrics when available
+  const hasBlockers = taskMetrics ? taskMetrics.inDegree > 0 : (task.blockedBy && task.blockedBy.length > 0)
+  const blocksOthers = taskMetrics ? taskMetrics.outDegree > 0 : (task.blocking && task.blocking.length > 0)
+  const isReady = taskMetrics ? taskMetrics.inDegree === 0 : task.isReady
+  const isCriticalPath = taskMetrics?.isCriticalPath ?? task.criticalPath
+
+  // Graph-computed metrics for enhanced badges
+  const unblockCount = taskMetrics?.unblockCount ?? 0
+  const impactScore = taskMetrics?.impactScore ?? 0
 
   // Get accent color for the card
   const cardAccent = agentMeta
@@ -184,6 +193,8 @@ export function KanbanCard({ task, isOverlay = false, columnAgent }: KanbanCardP
           blocksOthers={blocksOthers}
           isReady={isReady}
           isCriticalPath={isCriticalPath}
+          unblockCount={unblockCount}
+          impactScore={impactScore}
         />
       </div>
     </motion.div>
@@ -202,6 +213,10 @@ interface CardContentProps {
   blocksOthers?: boolean
   isReady?: boolean
   isCriticalPath?: boolean
+  /** Total downstream tasks unblocked (from graph metrics) */
+  unblockCount?: number
+  /** Impact score (from graph metrics, 0-100) */
+  impactScore?: number
 }
 
 function CardContent({
@@ -216,16 +231,24 @@ function CardContent({
   blocksOthers,
   isReady,
   isCriticalPath,
+  unblockCount = 0,
+  impactScore = 0,
 }: CardContentProps) {
   const hasTaskAgent = !!task.agent
   const inheritedFromColumn = !hasTaskAgent && !!columnAgent
   const blockerCount = task.blockedBy?.length ?? 0
   const blockingCount = task.blocking?.length ?? 0
 
+  // Use graph-computed unblock count if available, otherwise fall back to direct count
+  const effectiveUnblockCount = unblockCount > 0 ? unblockCount : blockingCount
+
+  // Impact level for high-impact tasks
+  const showHighImpact = impactScore >= 25
+
   return (
     <>
       {/* Dependency indicators row */}
-      {(hasBlockers || blocksOthers || isCriticalPath || isReady) && (
+      {(hasBlockers || effectiveUnblockCount > 0 || isCriticalPath || isReady || showHighImpact) && (
         <div className="flex items-center gap-1.5 mb-2 flex-wrap">
           {/* Blocked by indicator */}
           {hasBlockers && (
@@ -237,12 +260,23 @@ function CardContent({
             </div>
           )}
 
-          {/* Blocks others indicator */}
-          {blocksOthers && (
-            <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-500/30">
-              <Unlock className="h-3 w-3 text-amber-400" />
-              <span className="text-[10px] font-medium text-amber-400 mono">
-                Unblocks {blockingCount}
+          {/* Blocks others indicator - shows recursive unblock count */}
+          {effectiveUnblockCount > 0 && (
+            <div className={cn(
+              "flex items-center gap-1 px-1.5 py-0.5 rounded border",
+              effectiveUnblockCount >= 3
+                ? "bg-orange-500/15 border-orange-500/30"
+                : "bg-amber-500/15 border-amber-500/30"
+            )}>
+              <Unlock className={cn(
+                "h-3 w-3",
+                effectiveUnblockCount >= 3 ? "text-orange-400" : "text-amber-400"
+              )} />
+              <span className={cn(
+                "text-[10px] font-medium mono",
+                effectiveUnblockCount >= 3 ? "text-orange-400" : "text-amber-400"
+              )}>
+                Unblocks {effectiveUnblockCount} task{effectiveUnblockCount !== 1 ? 's' : ''}
               </span>
             </div>
           )}
@@ -263,6 +297,27 @@ function CardContent({
               <CheckCircle2 className="h-3 w-3 text-cyan-400" />
               <span className="text-[10px] font-medium text-cyan-400 mono">
                 Ready
+              </span>
+            </div>
+          )}
+
+          {/* High Impact indicator (when impact score is significant) */}
+          {showHighImpact && (
+            <div className={cn(
+              "flex items-center gap-1 px-1.5 py-0.5 rounded border",
+              impactScore >= 50
+                ? "bg-rose-500/15 border-rose-500/30"
+                : "bg-pink-500/15 border-pink-500/30"
+            )}>
+              <Zap className={cn(
+                "h-3 w-3",
+                impactScore >= 50 ? "text-rose-400" : "text-pink-400"
+              )} />
+              <span className={cn(
+                "text-[10px] font-medium mono",
+                impactScore >= 50 ? "text-rose-400" : "text-pink-400"
+              )}>
+                {impactScore >= 50 ? 'Critical Impact' : 'High Impact'}
               </span>
             </div>
           )}
