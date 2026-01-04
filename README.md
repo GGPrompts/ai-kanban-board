@@ -32,20 +32,35 @@ Pre-configured workflow templates with agents and prompts:
 
 ## Tech Stack
 
+### Web Interface
 - **Next.js 16** + React 19 + TypeScript
 - **Tailwind CSS v4** + shadcn/ui components
 - **@dnd-kit** - Drag and drop
 - **Framer Motion** - Animations
 - **Zustand** - State management
+- **Recharts** + **Graphology** - Visualization & dependency graphs
+
+### Terminal UI (Go)
+- **Bubbletea** - TUI framework
+- **Lipgloss** - Terminal styling
+- **Bubbles** - UI components
+- Located in `tui/` subdirectory
 
 ## Quick Start
 
+### Web Interface
 ```bash
 npm install
 npm run dev
 ```
-
 Open [http://localhost:4242](http://localhost:4242)
+
+### Terminal UI
+```bash
+cd tui
+go build
+./ai-kanban-board-tui
+```
 
 ## Project Structure
 
@@ -63,12 +78,22 @@ src/
 │   │   ├── ColumnConfigDialog.tsx # Agent + prompt config
 │   │   └── BoardSettingsDialog.tsx
 │   ├── task/                 # TaskModal, TaskChat, TaskAISettings
+│   ├── visualization/        # Charts for dependency graphs
 │   ├── sidebar/              # BoardList, CreateBoardDialog
 │   └── ui/                   # shadcn components
 ├── lib/
-│   ├── store.ts              # Zustand state
+│   ├── store.ts              # Board/Task Zustand state
+│   ├── agent-store.ts        # Custom agent profile store
 │   └── constants.ts          # Board templates
 └── types/                    # TypeScript definitions
+
+tui/                          # Go terminal UI
+├── main.go                   # Entry point
+├── model.go                  # Bubbletea Model
+├── view.go                   # Rendering
+├── backend.go                # YAML/JSON persistence
+├── styles.go                 # Terminal theming
+└── update_mouse.go           # Drag-drop support
 ```
 
 ## Workflow Configuration
@@ -92,6 +117,14 @@ src/
 - Amp
 - Cursor AI
 - Custom
+
+### Custom Agent Profiles
+Create custom agent configurations with:
+- **AgentProfile** - Name, avatar, description, base type
+- **AgentCapabilities** - Skills, MCP servers, subagents, slash commands
+- **AgentCLIConfig** - CLI flags, env vars, permission mode
+
+Custom profiles are stored in localStorage via Zustand.
 
 ## License
 
