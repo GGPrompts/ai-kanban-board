@@ -24,8 +24,11 @@ import {
   Unlock,
   CheckCircle2,
   Link,
+  Server,
+  Users,
+  Puzzle,
 } from "lucide-react"
-import { Task, AgentType, PRIORITY_COLORS, AGENT_META, AGENT_STATUS_META } from "@/types"
+import { Task, AgentType, PRIORITY_COLORS, AGENT_META, AGENT_STATUS_META, TaskActiveCapabilities } from "@/types"
 import { useBoardStore } from "@/lib/store"
 import { useGraphMetricsContextSafe } from "@/contexts/GraphMetricsContext"
 import { Badge } from "@/components/ui/badge"
@@ -433,6 +436,11 @@ function CardContent({
         </div>
       )}
 
+      {/* Active Capabilities indicator - shown when agent is running with configured capabilities */}
+      {isRunning && task.activeCapabilities?.isConfigured && (
+        <ActiveCapabilitiesBadges capabilities={task.activeCapabilities} />
+      )}
+
       {/* Git indicator */}
       {task.git?.branch && (
         <div className="flex items-center gap-1.5 mt-2 text-xs text-zinc-500">
@@ -463,5 +471,62 @@ function CardContent({
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * Compact badges showing active capabilities for a running task
+ */
+function ActiveCapabilitiesBadges({ capabilities }: { capabilities: TaskActiveCapabilities }) {
+  const skillCount = capabilities.skills?.length || 0
+  const mcpCount = capabilities.mcpServers?.length || 0
+  const subagentCount = capabilities.subagents?.length || 0
+
+  // Only show if there are any list-type capabilities active
+  if (skillCount === 0 && mcpCount === 0 && subagentCount === 0) {
+    return null
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-zinc-800/50"
+    >
+      {skillCount > 0 && (
+        <div
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20"
+          title={capabilities.skills?.join(', ')}
+        >
+          <Puzzle className="h-2.5 w-2.5 text-cyan-400" />
+          <span className="text-[9px] font-medium text-cyan-400 mono">
+            {skillCount} skill{skillCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+      {mcpCount > 0 && (
+        <div
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-purple-500/10 border border-purple-500/20"
+          title={capabilities.mcpServers?.join(', ')}
+        >
+          <Server className="h-2.5 w-2.5 text-purple-400" />
+          <span className="text-[9px] font-medium text-purple-400 mono">
+            {mcpCount} MCP{mcpCount !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
+      {subagentCount > 0 && (
+        <div
+          className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/20"
+          title={capabilities.subagents?.join(', ')}
+        >
+          <Users className="h-2.5 w-2.5 text-amber-400" />
+          <span className="text-[9px] font-medium text-amber-400 mono">
+            {subagentCount}
+          </span>
+        </div>
+      )}
+    </motion.div>
   )
 }

@@ -142,6 +142,10 @@ export interface Task {
   // Per-task Claude settings
   claudeSettings?: TaskClaudeSettings
 
+  // Active capabilities for this task execution
+  // Allows toggling which agent capabilities are used for this specific task
+  activeCapabilities?: TaskActiveCapabilities
+
   // Chat thread (like AI Workspace)
   messages?: Message[]
 
@@ -180,6 +184,33 @@ export interface TaskClaudeSettings {
 
   // Custom system prompt for this task
   systemPrompt?: string
+}
+
+/**
+ * Active capabilities for a specific task execution.
+ * Stores which capabilities from the agent profile are enabled for this task.
+ * Uses string arrays for toggleable items, booleans for flags.
+ */
+export interface TaskActiveCapabilities {
+  // Skills enabled for this task (subset of agent's skills)
+  skills?: string[]
+
+  // MCP servers enabled for this task
+  mcpServers?: string[]
+
+  // Subagents allowed for this task
+  subagents?: string[]
+
+  // Slash commands available for this task
+  slashCommands?: string[]
+
+  // Capability flags
+  canCreateWorktree?: boolean
+  canCreatePR?: boolean
+  canRunBash?: boolean
+
+  // Track if capabilities have been explicitly configured for this task
+  isConfigured?: boolean
 }
 
 export interface AgentInfo {

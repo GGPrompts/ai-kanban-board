@@ -18,6 +18,7 @@ import { TaskChat } from "./TaskChat"
 import { TaskAISettings } from "./TaskAISettings"
 import { TaskGitPanel } from "./TaskGitPanel"
 import { TaskDiff } from "./TaskDiff"
+import { CapabilityTogglePanel } from "./CapabilityTogglePanel"
 import { cn } from "@/lib/utils"
 
 export function TaskModal() {
@@ -143,6 +144,8 @@ export function TaskModal() {
                   <div className="glass-dark rounded-lg">
                     <TaskChat task={task} />
                   </div>
+                  {/* Capability toggles - shown when agent is assigned */}
+                  <CapabilityTogglePanel task={task} />
                   <TaskAISettings task={task} />
                 </motion.div>
               </AnimatePresence>

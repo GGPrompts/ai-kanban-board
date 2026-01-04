@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { Board, Column, Task, Message, AgentInfo, GitInfo, Commit, TaskClaudeSettings, COLUMN_PRESETS, ColumnState, UndoEntry } from '@/types'
+import { Board, Column, Task, Message, AgentInfo, GitInfo, Commit, TaskClaudeSettings, TaskActiveCapabilities, COLUMN_PRESETS, ColumnState, UndoEntry } from '@/types'
 import { BOARD_TEMPLATES, BoardTemplateKey } from './constants'
 
 // Max undo history entries
@@ -71,6 +71,7 @@ interface BoardState {
   addMessage: (taskId: string, message: Omit<Message, 'id'>) => void
   updateTaskAgent: (taskId: string, agent: AgentInfo) => void
   updateTaskClaudeSettings: (taskId: string, settings: Partial<TaskClaudeSettings>) => void
+  updateTaskActiveCapabilities: (taskId: string, capabilities: Partial<TaskActiveCapabilities>) => void
 
   // Git actions
   updateTaskGit: (taskId: string, gitInfo: Partial<GitInfo>) => void
@@ -325,6 +326,20 @@ export const useBoardStore = create<BoardState>()(
               ? {
                   ...t,
                   claudeSettings: { ...t.claudeSettings, ...settings },
+                  updatedAt: new Date()
+                }
+              : t
+          ),
+        }))
+      },
+
+      updateTaskActiveCapabilities: (taskId, capabilities) => {
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? {
+                  ...t,
+                  activeCapabilities: { ...t.activeCapabilities, ...capabilities, isConfigured: true },
                   updatedAt: new Date()
                 }
               : t
