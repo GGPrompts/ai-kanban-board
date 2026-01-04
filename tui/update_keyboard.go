@@ -62,21 +62,25 @@ func (m Model) handleBoardKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "left", "h":
 		m.moveSelectionLeft()
 		m.updateScrollOffset()
+		m.fetchIssueDetails() // Refresh detail panel
 		return m, nil
 
 	case "right", "l":
 		m.moveSelectionRight()
 		m.updateScrollOffset()
+		m.fetchIssueDetails() // Refresh detail panel
 		return m, nil
 
 	case "up", "k":
 		m.moveSelectionUp()
 		m.updateScrollOffset()
+		m.fetchIssueDetails() // Refresh detail panel
 		return m, nil
 
 	case "down", "j":
 		m.moveSelectionDown()
 		m.updateScrollOffset()
+		m.fetchIssueDetails() // Refresh detail panel
 		return m, nil
 
 	// Jump to first/last column
@@ -84,12 +88,14 @@ func (m Model) handleBoardKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.selectedColumn = 0
 		m.selectedTask = 0
 		m.updateScrollOffset()
+		m.fetchIssueDetails() // Refresh detail panel
 		return m, nil
 
 	case "end", "G":
 		m.selectedColumn = len(m.board.Columns) - 1
 		m.selectedTask = 0
 		m.updateScrollOffset()
+		m.fetchIssueDetails() // Refresh detail panel
 		return m, nil
 
 	// Task creation and editing

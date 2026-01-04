@@ -319,6 +319,45 @@ func (m *Model) closeTaskForm() {
 	m.editingTaskID = ""
 }
 
+// fetchIssueDetails fetches full details for the currently selected task
+// Returns nil if not using beads backend or if fetch fails
+func (m *Model) fetchIssueDetails() *BeadsIssueDetails {
+	task := m.getCurrentTask()
+	if task == nil {
+		m.cachedIssueDetails = nil
+		m.cachedIssueID = ""
+		return nil
+	}
+
+	// Check if we already have cached details for this task
+	if m.cachedIssueID == task.ID && m.cachedIssueDetails != nil {
+		return m.cachedIssueDetails
+	}
+
+	// Try to get beads backend
+	beadsBackend, ok := m.backend.(*BeadsBackend)
+	if !ok {
+		// Not using beads backend, no extended details available
+		return nil
+	}
+
+	// Fetch details from beads
+	details, err := beadsBackend.GetIssueDetails(task.ID)
+	if err != nil {
+		// Failed to fetch, clear cache
+		m.cachedIssueDetails = nil
+		m.cachedIssueID = ""
+		return nil
+	}
+
+	// Cache the details
+	m.cachedIssueDetails = details
+	m.cachedIssueID = task.ID
+	m.detailScrollOffset = 0 // Reset scroll when switching tasks
+
+	return details
+}
+
 // saveTaskForm saves the form data and closes it
 func (m *Model) saveTaskForm() {
 	if len(m.formInputs) < 2 {

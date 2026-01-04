@@ -110,6 +110,7 @@ func (m Model) handleMousePress(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	m.selectedColumn = colIndex
 	m.selectedTask = taskIndex
 	m.updateScrollOffset()
+	m.fetchIssueDetails() // Refresh detail panel
 
 	// Store potential drag info but don't start dragging yet
 	m.potentialDrag = true

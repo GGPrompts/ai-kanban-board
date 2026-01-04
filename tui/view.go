@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -279,27 +280,103 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 // renderDetailPanel renders the detail panel for the selected task
 func (m Model) renderDetailPanel() string {
 	task := m.getCurrentTask()
+	panelWidth := m.detailWidth - 2
+	contentWidth := panelWidth - 6 // Account for borders and padding
 
 	var content strings.Builder
 
 	if task == nil {
 		content.WriteString(styleSubdued.Render("No task selected"))
 	} else {
-		// Title
-		content.WriteString(styleDetailTitle.Render(task.Title))
+		// Use cached details if available (fetched in Update when selection changes)
+		details := m.cachedIssueDetails
+		if details != nil && m.cachedIssueID != task.ID {
+			details = nil // Stale cache
+		}
+
+		// Title (wrapped)
+		wrappedTitle := wrapText(task.Title, contentWidth)
+		content.WriteString(styleDetailTitle.Render(wrappedTitle))
 		content.WriteString("\n\n")
 
-		// Priority
+		// Issue ID
+		content.WriteString(styleDetailLabel.Render("ID: "))
+		content.WriteString(styleSubdued.Render(task.ID))
+		content.WriteString("\n\n")
+
+		// Status and Priority on same line
 		content.WriteString(styleDetailLabel.Render("Priority: "))
 		content.WriteString(renderPriorityBadge(task.Priority))
 		content.WriteString(" " + task.Priority.String())
 		content.WriteString("\n\n")
 
-		// Description
+		// Labels/Type
+		if len(task.Labels) > 0 {
+			content.WriteString(styleDetailLabel.Render("Type: "))
+			for _, label := range task.Labels {
+				content.WriteString(styleLabel.Render(label))
+			}
+			content.WriteString("\n\n")
+		}
+
+		// Description (with word wrapping)
 		if task.Description != "" {
 			content.WriteString(styleDetailLabel.Render("Description:"))
 			content.WriteString("\n")
-			content.WriteString(styleDetailValue.Render(task.Description))
+			wrappedDesc := wrapText(task.Description, contentWidth)
+			content.WriteString(styleDetailValue.Render(wrappedDesc))
+			content.WriteString("\n\n")
+		}
+
+		// Dependencies section (from bd show details)
+		if details != nil && len(details.Dependencies) > 0 {
+			content.WriteString(styleDetailLabel.Render("⛔ Blocked By:"))
+			content.WriteString("\n")
+			for _, dep := range details.Dependencies {
+				statusIcon := "○"
+				if dep.Status == "closed" {
+					statusIcon = "✓"
+				} else if dep.Status == "in_progress" {
+					statusIcon = "◐"
+				}
+				depLine := fmt.Sprintf("  %s %s", statusIcon, dep.ID)
+				content.WriteString(styleSubdued.Render(depLine))
+				content.WriteString("\n")
+				titleLine := fmt.Sprintf("    %s", truncateText(dep.Title, contentWidth-4))
+				content.WriteString(styleDetailValue.Render(titleLine))
+				content.WriteString("\n")
+			}
+			content.WriteString("\n")
+		} else if len(task.BlockedBy) > 0 {
+			// Fallback to basic blocked by list
+			content.WriteString(styleDetailLabel.Render("⛔ Blocked By: "))
+			content.WriteString(strings.Join(task.BlockedBy, ", "))
+			content.WriteString("\n\n")
+		}
+
+		// Dependents section (issues this blocks)
+		if details != nil && len(details.Dependents) > 0 {
+			content.WriteString(styleDetailLabel.Render("🚫 Blocking:"))
+			content.WriteString("\n")
+			for _, dep := range details.Dependents {
+				statusIcon := "○"
+				if dep.Status == "closed" {
+					statusIcon = "✓"
+				} else if dep.Status == "in_progress" {
+					statusIcon = "◐"
+				}
+				depLine := fmt.Sprintf("  %s %s", statusIcon, dep.ID)
+				content.WriteString(styleSubdued.Render(depLine))
+				content.WriteString("\n")
+				titleLine := fmt.Sprintf("    %s", truncateText(dep.Title, contentWidth-4))
+				content.WriteString(styleDetailValue.Render(titleLine))
+				content.WriteString("\n")
+			}
+			content.WriteString("\n")
+		} else if len(task.Blocking) > 0 {
+			// Fallback to basic blocking list
+			content.WriteString(styleDetailLabel.Render("🚫 Blocking: "))
+			content.WriteString(strings.Join(task.Blocking, ", "))
 			content.WriteString("\n\n")
 		}
 
@@ -308,22 +385,6 @@ func (m Model) renderDetailPanel() string {
 			content.WriteString(styleDetailLabel.Render("Agent: "))
 			content.WriteString(renderAgentBadge(task.Agent))
 			content.WriteString(" " + string(task.Agent.Type))
-			content.WriteString("\n\n")
-		}
-
-		// Labels
-		if len(task.Labels) > 0 {
-			content.WriteString(styleDetailLabel.Render("Labels: "))
-			for _, label := range task.Labels {
-				content.WriteString(styleLabel.Render(label))
-			}
-			content.WriteString("\n\n")
-		}
-
-		// Blocked by
-		if len(task.BlockedBy) > 0 {
-			content.WriteString(styleDetailLabel.Render("Blocked by: "))
-			content.WriteString(strings.Join(task.BlockedBy, ", "))
 			content.WriteString("\n\n")
 		}
 
@@ -337,13 +398,130 @@ func (m Model) renderDetailPanel() string {
 				content.WriteString(styleDetailValue.Render(task.Git.PRUrl))
 				content.WriteString("\n")
 			}
+			content.WriteString("\n")
+		}
+
+		// Timestamps
+		content.WriteString(styleDivider.Render(strings.Repeat("─", contentWidth)))
+		content.WriteString("\n")
+		if details != nil {
+			content.WriteString(styleSubdued.Render(fmt.Sprintf("Created: %s by %s",
+				formatRelativeTime(details.CreatedAt), details.CreatedBy)))
+			content.WriteString("\n")
+			content.WriteString(styleSubdued.Render(fmt.Sprintf("Updated: %s",
+				formatRelativeTime(details.UpdatedAt))))
+			if !details.ClosedAt.IsZero() {
+				content.WriteString("\n")
+				content.WriteString(styleSubdued.Render(fmt.Sprintf("Closed:  %s",
+					formatRelativeTime(details.ClosedAt))))
+			}
+		} else {
+			content.WriteString(styleSubdued.Render(fmt.Sprintf("Created: %s",
+				formatRelativeTime(task.CreatedAt))))
+			content.WriteString("\n")
+			content.WriteString(styleSubdued.Render(fmt.Sprintf("Updated: %s",
+				formatRelativeTime(task.UpdatedAt))))
 		}
 	}
 
 	return styleDetailPanel.
-		Width(m.detailWidth - 2).
+		Width(panelWidth).
 		Height(m.getContentHeight()).
 		Render(content.String())
+}
+
+// wrapText wraps text to fit within maxWidth characters
+func wrapText(text string, maxWidth int) string {
+	if maxWidth <= 0 {
+		maxWidth = 40
+	}
+
+	var result strings.Builder
+	words := strings.Fields(text)
+	lineLen := 0
+
+	for _, word := range words {
+		wordLen := len(word)
+
+		if lineLen+wordLen+1 > maxWidth && lineLen > 0 {
+			result.WriteString("\n")
+			lineLen = 0
+		}
+
+		if lineLen > 0 {
+			result.WriteString(" ")
+			lineLen++
+		}
+
+		// Handle words longer than maxWidth
+		if wordLen > maxWidth {
+			for len(word) > maxWidth {
+				if lineLen > 0 {
+					result.WriteString("\n")
+					lineLen = 0
+				}
+				result.WriteString(word[:maxWidth-1])
+				result.WriteString("-")
+				word = word[maxWidth-1:]
+				result.WriteString("\n")
+			}
+			if len(word) > 0 {
+				result.WriteString(word)
+				lineLen = len(word)
+			}
+		} else {
+			result.WriteString(word)
+			lineLen += wordLen
+		}
+	}
+
+	return result.String()
+}
+
+// truncateText truncates text to maxLen with ellipsis
+func truncateText(text string, maxLen int) string {
+	if len(text) <= maxLen {
+		return text
+	}
+	if maxLen <= 3 {
+		return text[:maxLen]
+	}
+	return text[:maxLen-1] + "…"
+}
+
+// formatRelativeTime formats a time as relative (e.g., "2 hours ago")
+func formatRelativeTime(t time.Time) string {
+	if t.IsZero() {
+		return "unknown"
+	}
+
+	now := time.Now()
+	diff := now.Sub(t)
+
+	switch {
+	case diff < time.Minute:
+		return "just now"
+	case diff < time.Hour:
+		mins := int(diff.Minutes())
+		if mins == 1 {
+			return "1 minute ago"
+		}
+		return fmt.Sprintf("%d minutes ago", mins)
+	case diff < 24*time.Hour:
+		hours := int(diff.Hours())
+		if hours == 1 {
+			return "1 hour ago"
+		}
+		return fmt.Sprintf("%d hours ago", hours)
+	case diff < 7*24*time.Hour:
+		days := int(diff.Hours() / 24)
+		if days == 1 {
+			return "yesterday"
+		}
+		return fmt.Sprintf("%d days ago", days)
+	default:
+		return t.Format("Jan 2, 2006")
+	}
 }
 
 // renderStatus renders the status bar

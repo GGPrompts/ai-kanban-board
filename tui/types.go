@@ -199,9 +199,14 @@ type Model struct {
 	lastClickY    int
 
 	// Filter state
-	filterActive bool              // Whether filter mode is active
-	filterInput  textinput.Model   // Text input for filtering
-	filterText   string            // Current filter text (applied when Enter pressed)
+	filterActive bool            // Whether filter mode is active
+	filterInput  textinput.Model // Text input for filtering
+	filterText   string          // Current filter text (applied when Enter pressed)
+
+	// Detail panel state (for beads backend)
+	cachedIssueDetails *BeadsIssueDetails // Cached full details for selected issue
+	cachedIssueID      string             // ID of issue with cached details
+	detailScrollOffset int                // Scroll offset within detail panel
 }
 
 // boardLoadedMsg is sent when the board has been loaded

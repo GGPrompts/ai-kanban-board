@@ -31,9 +31,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+		wasReady := m.ready
 		m.ready = true
 		m.calculateLayout()
 		m.updateScrollOffset() // Recalculate scroll for new size
+		if !wasReady {
+			m.fetchIssueDetails() // Initial fetch when first ready
+		}
 		return m, nil
 
 	case boardLoadedMsg:
@@ -42,6 +46,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.board = msg.board
+		m.fetchIssueDetails() // Refresh detail panel for new board
 		return m, nil
 	}
 
