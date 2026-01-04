@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
   BarChart,
   Bar,
@@ -24,9 +24,27 @@ import {
   groupByStatus,
   groupByPriority,
   groupByType,
-  getStatusColor,
-  getPriorityColor,
 } from './chartUtils'
+
+// Custom tooltip component for distribution charts
+function DistributionTooltip({ active, payload, total }: { active?: boolean; payload?: readonly Record<string, unknown>[]; total: number }) {
+  if (active && payload && payload.length) {
+    const item = (payload[0] as Record<string, unknown>).payload as { name: string; count: number; color: string }
+    const percentage = ((item.count / total) * 100).toFixed(1)
+    return (
+      <div
+        className="glass-dark px-3 py-2 rounded-lg border border-zinc-700/50 shadow-xl"
+        style={tooltipStyle}
+      >
+        <p className="text-xs font-medium text-zinc-100">{item.name}</p>
+        <p className="text-sm font-semibold" style={{ color: item.color }}>
+          {item.count} issues ({percentage}%)
+        </p>
+      </div>
+    )
+  }
+  return null
+}
 
 export interface IssueDistributionChartProps {
   issues: BeadsIssue[]
@@ -98,31 +116,19 @@ export function IssueDistributionChart({
 
   const total = useMemo(() => data.reduce((sum, d) => sum + d.count, 0), [data])
 
+  // Create tooltip render function with total bound (must be before early return)
+  const renderTooltip = useCallback(
+    (props: { active?: boolean; payload?: readonly Record<string, unknown>[] }) =>
+      <DistributionTooltip {...props} total={total} />,
+    [total]
+  )
+
   if (issues.length === 0) {
     return (
       <div className={cn('flex items-center justify-center h-full text-zinc-500', className)}>
         No issues to visualize
       </div>
     )
-  }
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const item = payload[0].payload
-      const percentage = ((item.count / total) * 100).toFixed(1)
-      return (
-        <div
-          className="glass-dark px-3 py-2 rounded-lg border border-zinc-700/50 shadow-xl"
-          style={tooltipStyle}
-        >
-          <p className="text-xs font-medium text-zinc-100">{item.name}</p>
-          <p className="text-sm font-semibold" style={{ color: item.color }}>
-            {item.count} issues ({percentage}%)
-          </p>
-        </div>
-      )
-    }
-    return null
   }
 
   const renderCustomLabel = ({
@@ -132,8 +138,15 @@ export function IssueDistributionChart({
     innerRadius,
     outerRadius,
     percent,
-    name,
-  }: any) => {
+  }: {
+    cx?: number
+    cy?: number
+    midAngle?: number
+    innerRadius?: number
+    outerRadius?: number
+    percent?: number
+  }) => {
+    if (!cx || !cy || !midAngle || !innerRadius || !outerRadius || !percent) return null
     if (percent < 0.05) return null // Don't show labels for tiny slices
 
     const RADIAN = Math.PI / 180
@@ -217,7 +230,7 @@ export function IssueDistributionChart({
                 axisLine={false}
                 width={80}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(63, 63, 70, 0.2)' }} />
+              <Tooltip content={renderTooltip} cursor={{ fill: 'rgba(63, 63, 70, 0.2)' }} />
 
               <Bar
                 dataKey="count"
@@ -269,7 +282,7 @@ export function IssueDistributionChart({
                     />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={renderTooltip} />
                 <Legend
                   layout="vertical"
                   verticalAlign="middle"

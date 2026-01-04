@@ -95,7 +95,11 @@ export function useBeadsIssues({
   const [isAvailable, setIsAvailable] = useState(false)
 
   const columnsRef = useRef(columns)
-  columnsRef.current = columns
+
+  // Keep columnsRef in sync with columns prop
+  useEffect(() => {
+    columnsRef.current = columns
+  }, [columns])
 
   // Check if beads CLI is available
   useEffect(() => {

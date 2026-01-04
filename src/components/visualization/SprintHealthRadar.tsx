@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useCallback } from 'react'
 import {
   RadarChart,
   PolarGrid,
@@ -15,6 +15,29 @@ import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 import type { BeadsIssue } from '@/lib/beads/types'
 import { CHART_COLORS, tooltipStyle, calculateSprintHealth } from './chartUtils'
+
+// Custom tooltip component for radar chart
+function RadarTooltip({ active, payload, showTarget }: { active?: boolean; payload?: readonly Record<string, unknown>[]; showTarget: boolean }) {
+  if (active && payload && payload.length) {
+    const data = (payload[0] as Record<string, unknown>).payload as { metric: string; value: number; target: number; description: string }
+    return (
+      <div
+        className="glass-dark px-3 py-2 rounded-lg border border-zinc-700/50 shadow-xl"
+        style={tooltipStyle}
+      >
+        <p className="text-xs font-medium text-zinc-100">{data.metric}</p>
+        <p className="text-[11px] text-zinc-400 mb-1">{data.description}</p>
+        <p className="text-sm font-semibold" style={{ color: CHART_COLORS.primary }}>
+          {data.value}%
+        </p>
+        {showTarget && (
+          <p className="text-[10px] text-zinc-500">Target: {data.target}%</p>
+        )}
+      </div>
+    )
+  }
+  return null
+}
 
 export interface SprintHealthRadarProps {
   issues: BeadsIssue[]
@@ -64,34 +87,19 @@ export function SprintHealthRadar({
     return Math.round(sum / data.length)
   }, [data])
 
+  // Create tooltip render function with showTarget bound
+  const renderTooltip = useCallback(
+    (props: { active?: boolean; payload?: readonly Record<string, unknown>[] }) =>
+      <RadarTooltip {...props} showTarget={showTarget} />,
+    [showTarget]
+  )
+
   if (issues.length === 0) {
     return (
       <div className={cn('flex items-center justify-center h-full text-zinc-500', className)}>
         No issues to analyze
       </div>
     )
-  }
-
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload
-      return (
-        <div
-          className="glass-dark px-3 py-2 rounded-lg border border-zinc-700/50 shadow-xl"
-          style={tooltipStyle}
-        >
-          <p className="text-xs font-medium text-zinc-100">{data.metric}</p>
-          <p className="text-[11px] text-zinc-400 mb-1">{data.description}</p>
-          <p className="text-sm font-semibold" style={{ color: CHART_COLORS.primary }}>
-            {data.value}%
-          </p>
-          {showTarget && (
-            <p className="text-[10px] text-zinc-500">Target: {data.target}%</p>
-          )}
-        </div>
-      )
-    }
-    return null
   }
 
   return (
@@ -177,7 +185,7 @@ export function SprintHealthRadar({
             }}
           />
 
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip content={renderTooltip} />
           <Legend
             wrapperStyle={{ fontSize: '11px' }}
             iconType="circle"

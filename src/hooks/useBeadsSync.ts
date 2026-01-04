@@ -87,6 +87,7 @@ export function useBeadsSync(options: UseBeadsSyncOptions = {}): UseBeadsSyncRet
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isConnectingRef = useRef(false)
+  const connectRef = useRef<() => void>(() => {})
 
   // Update connection state and notify
   const updateConnectionState = useCallback((state: BeadsSyncConnectionState) => {
@@ -185,13 +186,18 @@ export function useBeadsSync(options: UseBeadsSyncOptions = {}): UseBeadsSyncRet
 
         reconnectTimerRef.current = setTimeout(() => {
           reconnectTimerRef.current = null
-          connect()
+          connectRef.current()
         }, delay)
 
         return newAttempts
       })
     }
   }, [updateConnectionState, onUpdate, onError])
+
+  // Keep connectRef in sync with connect callback
+  useEffect(() => {
+    connectRef.current = connect
+  }, [connect])
 
   // Reconnect (disconnect then connect)
   const reconnect = useCallback(() => {

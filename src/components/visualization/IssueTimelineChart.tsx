@@ -19,6 +19,26 @@ import { cn } from '@/lib/utils'
 import type { BeadsIssue } from '@/lib/beads/types'
 import { CHART_COLORS, tooltipStyle, generateTimelineData } from './chartUtils'
 
+// Custom tooltip component for timeline charts
+function TimelineTooltip({ active, payload, label }: { active?: boolean; payload?: readonly Record<string, unknown>[]; label?: string | number }) {
+  if (active && payload && payload.length) {
+    return (
+      <div
+        className="glass-dark px-3 py-2 rounded-lg border border-zinc-700/50 shadow-xl"
+        style={tooltipStyle}
+      >
+        <p className="text-xs font-medium text-zinc-100 mb-1">{label}</p>
+        {payload.map((entry, index: number) => (
+          <p key={index} className="text-[11px]" style={{ color: entry.color as string }}>
+            {entry.name as string}: {entry.value as number}
+          </p>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
+
 export interface IssueTimelineChartProps {
   issues: BeadsIssue[]
   className?: string
@@ -78,25 +98,6 @@ export function IssueTimelineChart({
     )
   }
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div
-          className="glass-dark px-3 py-2 rounded-lg border border-zinc-700/50 shadow-xl"
-          style={tooltipStyle}
-        >
-          <p className="text-xs font-medium text-zinc-100 mb-1">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-[11px]" style={{ color: entry.color }}>
-              {entry.name}: {entry.value}
-            </p>
-          ))}
-        </div>
-      )
-    }
-    return null
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -137,7 +138,7 @@ export function IssueTimelineChart({
               axisLine={false}
               width={30}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={TimelineTooltip} />
             <Legend
               wrapperStyle={{ fontSize: '11px' }}
               iconType="circle"
@@ -196,7 +197,7 @@ export function IssueTimelineChart({
                 width={30}
               />
             )}
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={TimelineTooltip} />
             <Legend
               wrapperStyle={{ fontSize: '11px' }}
               iconType="circle"
