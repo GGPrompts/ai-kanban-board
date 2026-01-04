@@ -267,6 +267,101 @@ export type AgentType = 'claude-code' | 'gemini-cli' | 'codex' | 'copilot' | 'am
 export type AgentStatus = 'idle' | 'running' | 'paused' | 'completed' | 'failed'
 export type Priority = 'low' | 'medium' | 'high' | 'urgent'
 
+/**
+ * CLI configuration for running an agent.
+ * Mirrors TaskClaudeSettings but scoped to agent-level defaults.
+ */
+export interface AgentCLIConfig {
+  /** Agent definition file from ~/.claude/agents/ */
+  agent?: string
+
+  /** Default working directory for agent sessions */
+  workingDir?: string
+
+  /** Additional directories to include in context */
+  additionalDirs?: string[]
+
+  /** Permission mode: bypassPermissions, plan, or default */
+  permissionMode?: 'bypassPermissions' | 'plan' | 'default'
+
+  /** Tools this agent is allowed to use */
+  allowedTools?: string[]
+
+  /** Tools this agent is not allowed to use */
+  disallowedTools?: string[]
+
+  /** Custom system prompt prepended to agent sessions */
+  systemPrompt?: string
+
+  /** Environment variables to set for agent sessions */
+  envVars?: Record<string, string>
+
+  /** Additional CLI flags to pass (e.g., ['--verbose', '--no-cache']) */
+  cliFlags?: string[]
+}
+
+/**
+ * Capabilities and integrations available to an agent.
+ */
+export interface AgentCapabilities {
+  /** Skills this agent can invoke (e.g., 'commit', 'review-pr') */
+  skills?: string[]
+
+  /** MCP servers this agent has access to (e.g., 'tabz', 'shadcn') */
+  mcpServers?: string[]
+
+  /** Subagent types this agent can spawn */
+  subagents?: string[]
+
+  /** Slash commands registered for this agent */
+  slashCommands?: string[]
+
+  /** Whether this agent can create git worktrees */
+  canCreateWorktree?: boolean
+
+  /** Whether this agent can create pull requests */
+  canCreatePR?: boolean
+
+  /** Whether this agent can run arbitrary bash commands */
+  canRunBash?: boolean
+}
+
+/**
+ * Custom agent profile extending a base agent type with metadata and configuration.
+ * Stored in Zustand and persisted to localStorage.
+ */
+export interface AgentProfile {
+  /** Unique identifier for this agent profile */
+  id: string
+
+  /** Display name for the agent */
+  name: string
+
+  /** Avatar URL or Lucide icon name */
+  avatar?: string
+
+  /** Short description of what this agent does */
+  description?: string
+
+  /** Base agent type this profile extends */
+  baseType: AgentType
+
+  /** Agent capabilities and integrations */
+  capabilities?: AgentCapabilities
+
+  /** CLI configuration for running this agent */
+  cliConfig?: AgentCLIConfig
+
+  /** Whether this agent is enabled */
+  isEnabled?: boolean
+
+  /** When this profile was created */
+  createdAt: Date
+
+  /** When this profile was last updated */
+  updatedAt: Date
+}
+
 // Agent display metadata
 export const AGENT_META: Record<AgentType, {
   label: string
