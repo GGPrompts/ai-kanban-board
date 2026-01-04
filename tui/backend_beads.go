@@ -28,11 +28,44 @@ type BeadsIssue struct {
 	CreatedAt       time.Time `json:"created_at"`
 	CreatedBy       string    `json:"created_by"`
 	UpdatedAt       time.Time `json:"updated_at"`
+	ClosedAt        time.Time `json:"closed_at,omitempty"`
 	Assignee        string    `json:"assignee,omitempty"`
 	BlockedBy       []string  `json:"blocked_by,omitempty"`
 	Blocking        []string  `json:"blocking,omitempty"`
 	DependencyCount int       `json:"dependency_count"`
 	DependentCount  int       `json:"dependent_count"`
+}
+
+// BeadsIssueDependency represents a dependency/dependent from bd show --json
+type BeadsIssueDependency struct {
+	ID             string    `json:"id"`
+	Title          string    `json:"title"`
+	Description    string    `json:"description"`
+	Status         string    `json:"status"`
+	Priority       int       `json:"priority"`
+	IssueType      string    `json:"issue_type"`
+	CreatedAt      time.Time `json:"created_at"`
+	CreatedBy      string    `json:"created_by"`
+	UpdatedAt      time.Time `json:"updated_at"`
+	ClosedAt       time.Time `json:"closed_at,omitempty"`
+	DependencyType string    `json:"dependency_type"` // "blocks"
+}
+
+// BeadsIssueDetails represents the full issue details from bd show --json
+type BeadsIssueDetails struct {
+	ID           string                 `json:"id"`
+	Title        string                 `json:"title"`
+	Description  string                 `json:"description"`
+	Status       string                 `json:"status"`
+	Priority     int                    `json:"priority"`
+	IssueType    string                 `json:"issue_type"`
+	CreatedAt    time.Time              `json:"created_at"`
+	CreatedBy    string                 `json:"created_by"`
+	UpdatedAt    time.Time              `json:"updated_at"`
+	ClosedAt     time.Time              `json:"closed_at,omitempty"`
+	Assignee     string                 `json:"assignee,omitempty"`
+	Dependencies []BeadsIssueDependency `json:"dependencies,omitempty"` // Issues that block this one
+	Dependents   []BeadsIssueDependency `json:"dependents,omitempty"`   // Issues this one blocks
 }
 
 // Column ID to status mapping
@@ -339,4 +372,25 @@ func (b *BeadsBackend) DeleteTask(taskID string) error {
 	b.cachedBoard = nil
 
 	return nil
+}
+
+// GetIssueDetails fetches full issue details including dependencies using bd show --json
+func (b *BeadsBackend) GetIssueDetails(issueID string) (*BeadsIssueDetails, error) {
+	cmd := exec.Command("bd", "show", issueID, "--json")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get issue details for %s: %w", issueID, err)
+	}
+
+	// bd show returns an array with single element
+	var issues []BeadsIssueDetails
+	if err := json.Unmarshal(output, &issues); err != nil {
+		return nil, fmt.Errorf("failed to parse issue details: %w", err)
+	}
+
+	if len(issues) == 0 {
+		return nil, fmt.Errorf("no issue found with ID %s", issueID)
+	}
+
+	return &issues[0], nil
 }

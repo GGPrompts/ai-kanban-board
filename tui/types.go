@@ -208,6 +208,11 @@ type Model struct {
 	visibleColumnStart int  // First visible column index (for horizontal scrolling)
 	visibleColumnCount int  // Number of columns that can fit on screen
 	minColumnWidth     int  // Minimum readable column width (set to 18 for cardWidth + padding)
+
+	// Detail panel state (for beads backend)
+	cachedIssueDetails *BeadsIssueDetails // Cached full details for selected issue
+	cachedIssueID      string             // ID of issue with cached details
+	detailScrollOffset int                // Scroll offset within detail panel
 }
 
 // boardLoadedMsg is sent when the board has been loaded
