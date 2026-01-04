@@ -291,14 +291,10 @@ func (b *BeadsBackend) UpdateTask(task *Task) error {
 }
 
 // CreateTask creates a new beads issue
-func (b *BeadsBackend) CreateTask(title, description, columnID string, priority Priority) (*Task, error) {
-	// Determine issue type based on title or default to task
-	issueType := "task"
-	lowerTitle := strings.ToLower(title)
-	if strings.Contains(lowerTitle, "bug") || strings.Contains(lowerTitle, "fix") {
-		issueType = "bug"
-	} else if strings.Contains(lowerTitle, "feature") {
-		issueType = "feature"
+func (b *BeadsBackend) CreateTask(title, description, columnID, issueType string, priority Priority) (*Task, error) {
+	// Default to task if no type specified
+	if issueType == "" {
+		issueType = "task"
 	}
 
 	// Build create command

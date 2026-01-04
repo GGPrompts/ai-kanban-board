@@ -221,6 +221,19 @@ var (
 			Padding(0, 1)
 )
 
+// Form styles for quick-add modal
+var (
+	styleFormSelected = lipgloss.NewStyle().
+				Background(colorPrimary).
+				Foreground(lipgloss.Color("0")).
+				Bold(true).
+				Padding(0, 1)
+
+	styleFormOption = lipgloss.NewStyle().
+			Foreground(colorSubdued).
+			Padding(0, 1)
+)
+
 // Helper functions for styling
 
 // renderCompactPriorityBadge returns a compact priority badge (P0-P3)

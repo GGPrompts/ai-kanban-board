@@ -351,6 +351,10 @@ func (m *Model) openCreateTaskForm() {
 	m.editingTaskID = ""
 	m.formFocusIndex = 0
 
+	// Initialize quick-add defaults
+	m.formIssueType = "task"       // Default to task
+	m.formPriority = PriorityMedium // Default to P2
+
 	// Create text inputs for the form
 	titleInput := textinput.New()
 	titleInput.Placeholder = "Task title"
@@ -376,6 +380,16 @@ func (m *Model) openEditTaskForm() {
 	m.formMode = FormEditTask
 	m.editingTaskID = task.ID
 	m.formFocusIndex = 0
+
+	// Load type from labels (first label is typically issue type)
+	m.formIssueType = "task"
+	if len(task.Labels) > 0 {
+		switch task.Labels[0] {
+		case "bug", "feature", "task":
+			m.formIssueType = task.Labels[0]
+		}
+	}
+	m.formPriority = task.Priority
 
 	// Create text inputs with current values
 	titleInput := textinput.New()
@@ -457,21 +471,28 @@ func (m *Model) saveTaskForm() {
 	}
 
 	if m.formMode == FormCreateTask {
-		// Create new task
+		// Create new task with selected type and priority
 		col := m.getCurrentColumn()
 		if col != nil {
-			task, err := m.backend.CreateTask(title, description, col.ID, PriorityMedium)
+			task, err := m.backend.CreateTask(title, description, col.ID, m.formIssueType, m.formPriority)
 			if err == nil {
 				col.Tasks = append(col.Tasks, task)
 				m.board.Tasks = append(m.board.Tasks, task)
 			}
 		}
 	} else if m.formMode == FormEditTask {
-		// Update existing task
+		// Update existing task with new values
 		for _, task := range m.board.Tasks {
 			if task.ID == m.editingTaskID {
 				task.Title = title
 				task.Description = description
+				task.Priority = m.formPriority
+				// Preserve labels beyond the issue type (first label)
+				if len(task.Labels) > 1 {
+					task.Labels = append([]string{m.formIssueType}, task.Labels[1:]...)
+				} else {
+					task.Labels = []string{m.formIssueType}
+				}
 				task.UpdatedAt = time.Now()
 				m.backend.UpdateTask(task)
 				break

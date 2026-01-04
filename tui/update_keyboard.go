@@ -214,6 +214,32 @@ func (m Model) handleFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.saveTaskForm()
 		return m, nil
 
+	case "ctrl+t":
+		// Cycle issue type: task → bug → feature → task
+		switch m.formIssueType {
+		case "task":
+			m.formIssueType = "bug"
+		case "bug":
+			m.formIssueType = "feature"
+		default:
+			m.formIssueType = "task"
+		}
+		return m, nil
+
+	case "ctrl+p":
+		// Cycle priority: P0 → P1 → P2 → P3 → P0
+		switch m.formPriority {
+		case PriorityUrgent:
+			m.formPriority = PriorityHigh
+		case PriorityHigh:
+			m.formPriority = PriorityMedium
+		case PriorityMedium:
+			m.formPriority = PriorityLow
+		default:
+			m.formPriority = PriorityUrgent
+		}
+		return m, nil
+
 	case "tab", "shift+tab", "up", "down":
 		// Navigate between form fields
 		if msg.String() == "tab" || msg.String() == "down" {

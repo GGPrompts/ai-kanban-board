@@ -656,7 +656,7 @@ func (m Model) renderDeleteConfirmation(background string) string {
 func (m Model) renderFormOverlay(background string) string {
 	var title string
 	if m.formMode == FormCreateTask {
-		title = "New Task"
+		title = "Quick Add"
 	} else {
 		title = "Edit Task"
 	}
@@ -665,24 +665,90 @@ func (m Model) renderFormOverlay(background string) string {
 	formContent.WriteString(styleDetailTitle.Render(title))
 	formContent.WriteString("\n\n")
 
-	labels := []string{"Title:", "Description:"}
-	for i, input := range m.formInputs {
-		formContent.WriteString(styleDetailLabel.Render(labels[i]))
-		formContent.WriteString("\n")
-		formContent.WriteString(input.View())
-		formContent.WriteString("\n\n")
-	}
+	// Title input
+	formContent.WriteString(styleDetailLabel.Render("Title:"))
+	formContent.WriteString("\n")
+	formContent.WriteString(m.formInputs[0].View())
+	formContent.WriteString("\n\n")
 
-	formContent.WriteString(styleSubdued.Render("Ctrl+S: Save | Esc: Cancel"))
+	// Type selector row
+	formContent.WriteString(styleDetailLabel.Render("Type:"))
+	formContent.WriteString("  ")
+	types := []string{"task", "bug", "feature"}
+	for i, t := range types {
+		if t == m.formIssueType {
+			formContent.WriteString(styleFormSelected.Render(t))
+		} else {
+			formContent.WriteString(styleFormOption.Render(t))
+		}
+		if i < len(types)-1 {
+			formContent.WriteString("  ")
+		}
+	}
+	formContent.WriteString("\n\n")
+
+	// Priority selector row
+	formContent.WriteString(styleDetailLabel.Render("Priority:"))
+	formContent.WriteString("  ")
+	priorities := []Priority{PriorityUrgent, PriorityHigh, PriorityMedium, PriorityLow}
+	labels := []string{"P0", "P1", "P2", "P3"}
+	for i, p := range priorities {
+		if p == m.formPriority {
+			formContent.WriteString(m.renderPriorityBadgeSelected(p, labels[i]))
+		} else {
+			formContent.WriteString(m.renderPriorityBadgeDim(labels[i]))
+		}
+		if i < len(priorities)-1 {
+			formContent.WriteString(" ")
+		}
+	}
+	formContent.WriteString("\n\n")
+
+	// Description input
+	formContent.WriteString(styleDetailLabel.Render("Description:"))
+	formContent.WriteString(" ")
+	formContent.WriteString(styleSubdued.Render("(optional)"))
+	formContent.WriteString("\n")
+	formContent.WriteString(m.formInputs[1].View())
+	formContent.WriteString("\n\n")
+
+	// Help text
+	formContent.WriteString(styleSubdued.Render("Ctrl+T: Type | Ctrl+P: Priority | Ctrl+S: Save | Esc: Cancel"))
 
 	overlay := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(colorPrimary).
 		Padding(1, 2).
-		Width(50).
+		Width(56).
 		Render(formContent.String())
 
 	return lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, overlay)
+}
+
+// renderPriorityBadgeSelected renders a priority badge with full styling (selected)
+func (m Model) renderPriorityBadgeSelected(p Priority, label string) string {
+	var color lipgloss.Color
+	switch p {
+	case PriorityUrgent:
+		color = colorDanger
+	case PriorityHigh:
+		color = colorWarning
+	case PriorityMedium:
+		color = colorInfo
+	case PriorityLow:
+		color = colorSuccess
+	}
+	return lipgloss.NewStyle().
+		Background(color).
+		Foreground(lipgloss.Color("0")).
+		Bold(true).
+		Padding(0, 1).
+		Render(label)
+}
+
+// renderPriorityBadgeDim renders a priority badge with dim styling (not selected)
+func (m Model) renderPriorityBadgeDim(label string) string {
+	return styleFormOption.Render(label)
 }
 
 // renderHelpView renders the help screen
@@ -701,11 +767,17 @@ NAVIGATION
 
 ACTIONS
   Enter or e          Open/edit selected task
-  n                   Create new task
+  n                   Quick-add new task
   d                   Delete selected task
   m                   Move task to next column
   M                   Move task to previous column
   Mouse drag          Drag & drop tasks between columns
+
+QUICK-ADD FORM
+  Ctrl+T              Cycle issue type (task/bug/feature)
+  Ctrl+P              Cycle priority (P0/P1/P2/P3)
+  Ctrl+S              Save and close form
+  Esc                 Cancel and close form
 
 VIEW
   Tab                 Toggle detail panel
