@@ -12,6 +12,7 @@ func main() {
 	// Parse command-line flags
 	var (
 		boardFile = flag.String("board", "board.yaml", "Path to board YAML/JSON file")
+		beadsMode = flag.Bool("beads", false, "Use beads issue tracker as backend")
 		help      = flag.Bool("help", false, "Show help")
 	)
 	flag.Parse()
@@ -22,6 +23,7 @@ func main() {
 		fmt.Println("Usage:")
 		fmt.Println("  ai-kanban-tui                    # Use default board.yaml")
 		fmt.Println("  ai-kanban-tui --board=tasks.yaml # Use custom board file")
+		fmt.Println("  ai-kanban-tui --beads            # Use beads issue tracker")
 		fmt.Println()
 		fmt.Println("Keyboard shortcuts:")
 		fmt.Println("  arrows / hjkl  Navigate columns and tasks")
@@ -36,7 +38,13 @@ func main() {
 	}
 
 	// Create backend and load board
-	backend := NewLocalBackend(*boardFile)
+	var backend Backend
+	if *beadsMode {
+		backend = NewBeadsBackend()
+	} else {
+		backend = NewLocalBackend(*boardFile)
+	}
+
 	board, err := backend.LoadBoard()
 	if err != nil {
 		fmt.Printf("Error loading board: %v\n", err)
