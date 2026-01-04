@@ -644,7 +644,11 @@ func (m Model) renderStatus() string {
 	// Show backend indicator
 	backendHint := " [YAML]"
 	if m.isBeadsBackend() {
-		backendHint = " [beads]"
+		if m.isShowingAll() {
+			backendHint = " [beads:all]"
+		} else {
+			backendHint = " [beads]"
+		}
 	}
 
 	status := fmt.Sprintf("%s | Column: %s%s%s%s%s | ? Help | B Backend | q Quit", backendHint, colName, narrowInfo, taskInfo, filterInfo, chatHint)
@@ -787,8 +791,8 @@ ACTIONS
   Mouse drag          Drag & drop tasks between columns
 
 QUICK-ADD FORM
-  Ctrl+T              Cycle issue type (task/bug/feature)
-  Ctrl+P              Cycle priority (P0/P1/P2/P3)
+  Alt+T               Cycle issue type (task/bug/feature)
+  [ / ]               Cycle priority down/up (P0-P3)
   Ctrl+S              Save and close form
   Esc                 Cancel and close form
 
@@ -796,6 +800,7 @@ VIEW
   Tab                 Toggle detail panel
   /                   Filter tasks
   Esc                 Clear filter
+  A                   Toggle show all (include closed)
   B                   Toggle beads/local backend
   ?                   Toggle this help screen
 

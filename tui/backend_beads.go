@@ -15,6 +15,7 @@ type BeadsBackend struct {
 	cachedBoard *Board
 	lastLoad    time.Time
 	cacheTTL    time.Duration
+	showAll     bool // Include closed issues
 }
 
 // BeadsIssue represents an issue from bd list --json
@@ -92,8 +93,13 @@ func (b *BeadsBackend) LoadBoard() (*Board, error) {
 		return b.cachedBoard, nil
 	}
 
-	// Run bd list --json
-	cmd := exec.Command("bd", "list", "--json")
+	// Run bd list --json (with --all if showing closed issues)
+	var cmd *exec.Cmd
+	if b.showAll {
+		cmd = exec.Command("bd", "list", "--all", "--json")
+	} else {
+		cmd = exec.Command("bd", "list", "--json")
+	}
 	output, err := cmd.Output()
 	if err != nil {
 		// If bd command fails, return empty board
@@ -389,4 +395,16 @@ func (b *BeadsBackend) GetIssueDetails(issueID string) (*BeadsIssueDetails, erro
 	}
 
 	return &issues[0], nil
+}
+
+// ToggleShowAll toggles showing closed issues and invalidates cache
+func (b *BeadsBackend) ToggleShowAll() bool {
+	b.showAll = !b.showAll
+	b.cachedBoard = nil // Invalidate cache to force reload
+	return b.showAll
+}
+
+// ShowingAll returns whether closed issues are being shown
+func (b *BeadsBackend) ShowingAll() bool {
+	return b.showAll
 }

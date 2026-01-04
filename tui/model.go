@@ -532,3 +532,32 @@ func (m Model) isBeadsBackend() bool {
 	_, isBeads := m.backend.(*BeadsBackend)
 	return isBeads
 }
+
+// toggleShowAll toggles showing closed issues (beads only)
+func (m *Model) toggleShowAll() {
+	beadsBackend, ok := m.backend.(*BeadsBackend)
+	if !ok {
+		return
+	}
+
+	beadsBackend.ToggleShowAll()
+
+	// Reload board
+	board, err := m.backend.LoadBoard()
+	if err == nil {
+		m.board = board
+		m.selectedColumn = 0
+		m.selectedTask = 0
+		m.cachedIssueDetails = nil
+		m.cachedIssueID = ""
+	}
+}
+
+// isShowingAll returns true if showing closed issues
+func (m Model) isShowingAll() bool {
+	beadsBackend, ok := m.backend.(*BeadsBackend)
+	if !ok {
+		return false
+	}
+	return beadsBackend.ShowingAll()
+}

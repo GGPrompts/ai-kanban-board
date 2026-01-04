@@ -154,6 +154,11 @@ func (m Model) handleBoardKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Toggle between beads and local backend
 		m.toggleBackend()
 		return m, nil
+
+	case "A":
+		// Toggle showing closed/done issues (beads only)
+		m.toggleShowAll()
+		return m, nil
 	}
 
 	return m, nil
@@ -229,7 +234,7 @@ func (m Model) handleFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.saveTaskForm()
 		return m, nil
 
-	case "ctrl+t":
+	case "ctrl+t", "alt+t":
 		// Cycle issue type: task → bug → feature → task
 		switch m.formIssueType {
 		case "task":
@@ -241,8 +246,8 @@ func (m Model) handleFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case "ctrl+p":
-		// Cycle priority: P0 → P1 → P2 → P3 → P0
+	case "ctrl+p", "alt+p", "[":
+		// Cycle priority down: P0 → P1 → P2 → P3 → P0
 		switch m.formPriority {
 		case PriorityUrgent:
 			m.formPriority = PriorityHigh
@@ -252,6 +257,20 @@ func (m Model) handleFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.formPriority = PriorityLow
 		default:
 			m.formPriority = PriorityUrgent
+		}
+		return m, nil
+
+	case "]":
+		// Cycle priority up: P3 → P2 → P1 → P0 → P3
+		switch m.formPriority {
+		case PriorityLow:
+			m.formPriority = PriorityMedium
+		case PriorityMedium:
+			m.formPriority = PriorityHigh
+		case PriorityHigh:
+			m.formPriority = PriorityUrgent
+		default:
+			m.formPriority = PriorityLow
 		}
 		return m, nil
 
