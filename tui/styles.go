@@ -223,18 +223,70 @@ var (
 
 // Helper functions for styling
 
-// renderCard renders a card with the given title (wrapped, no labels)
-func renderCard(title string, selected bool) string {
-	return renderCardWithStyle(title, selected, false)
+// renderCompactPriorityBadge returns a compact priority badge (P0-P3)
+func renderCompactPriorityBadge(p Priority) string {
+	color := GetPriorityColor(p)
+	style := lipgloss.NewStyle().Foreground(color).Bold(true)
+
+	switch p {
+	case PriorityUrgent:
+		return style.Render("P0")
+	case PriorityHigh:
+		return style.Render("P1")
+	case PriorityMedium:
+		return style.Render("P2")
+	case PriorityLow:
+		return style.Render("P3")
+	}
+	return style.Render("P2")
+}
+
+// renderCompactAgentBadge returns a compact agent indicator
+func renderCompactAgentBadge(agent *AgentInfo) string {
+	if agent == nil {
+		return ""
+	}
+
+	color := GetAgentStatusColor(agent.Status)
+	style := lipgloss.NewStyle().Foreground(color)
+
+	switch agent.Status {
+	case AgentRunning:
+		return style.Render("▶")
+	case AgentPaused:
+		return style.Render("⏸")
+	case AgentCompleted:
+		return style.Render("✓")
+	case AgentFailed:
+		return style.Render("✗")
+	default:
+		return style.Render("○")
+	}
+}
+
+// renderCardBadgeLine renders the first line with priority and agent badges
+func renderCardBadgeLine(task *Task, maxWidth int) string {
+	priority := renderCompactPriorityBadge(task.Priority)
+	agent := renderCompactAgentBadge(task.Agent)
+
+	if agent != "" {
+		return priority + " " + agent
+	}
+	return priority
+}
+
+// renderCard renders a card with the given task (with badges)
+func renderCard(task *Task, selected bool) string {
+	return renderCardWithStyle(task, selected, false)
 }
 
 // renderCardGhost renders a faded ghost card (for dragging)
-func renderCardGhost(title string) string {
-	return renderCardWithStyle(title, false, true)
+func renderCardGhost(task *Task) string {
+	return renderCardWithStyle(task, false, true)
 }
 
-// renderCardWithStyle renders a card with the given title and style options
-func renderCardWithStyle(title string, selected bool, ghost bool) string {
+// renderCardWithStyle renders a card with the given task and style options
+func renderCardWithStyle(task *Task, selected bool, ghost bool) string {
 	style := styleCard
 	if ghost {
 		style = styleCardGhost
@@ -242,18 +294,25 @@ func renderCardWithStyle(title string, selected bool, ghost bool) string {
 		style = styleCardSelected
 	}
 
-	// Wrap title to fit card width (12 chars with padding)
 	maxWidth := cardWidth - 2
-	wrappedTitle := wrapCardTitle(title, maxWidth)
 
-	return style.Render(wrappedTitle)
+	// Build card content: badge line + wrapped title
+	var content strings.Builder
+	content.WriteString(renderCardBadgeLine(task, maxWidth))
+	content.WriteString("\n")
+
+	// Wrap title to fit remaining card space (3 lines max - 1 for badges = 2 for title)
+	wrappedTitle := wrapCardTitle(task.Title, maxWidth)
+	content.WriteString(wrappedTitle)
+
+	return style.Render(content.String())
 }
 
 // renderCardTopLines renders just the top 2 lines of a card (for stacking)
 // This creates the Solitaire-style cascading effect
-func renderCardTopLines(title string, selected bool) string {
+func renderCardTopLines(task *Task, selected bool) string {
 	// Render full card first
-	fullCard := renderCardWithStyle(title, selected, false)
+	fullCard := renderCardWithStyle(task, selected, false)
 
 	// Extract just the top 2 lines
 	lines := strings.Split(fullCard, "\n")
@@ -264,9 +323,9 @@ func renderCardTopLines(title string, selected bool) string {
 }
 
 // renderCardTopLinesGhost renders just the top 2 lines of a ghost card
-func renderCardTopLinesGhost(title string) string {
+func renderCardTopLinesGhost(task *Task) string {
 	// Render full ghost card first
-	fullCard := renderCardGhost(title)
+	fullCard := renderCardGhost(task)
 
 	// Extract just the top 2 lines
 	lines := strings.Split(fullCard, "\n")

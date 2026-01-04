@@ -239,16 +239,16 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 		if isLastVisible {
 			// Last visible task - show full card
 			if isDragging {
-				columnContent.WriteString(renderCardGhost(task.Title))
+				columnContent.WriteString(renderCardGhost(task))
 			} else {
-				columnContent.WriteString(renderCard(task.Title, isSelected))
+				columnContent.WriteString(renderCard(task, isSelected))
 			}
 		} else {
 			// Stacked task - show only top 2 lines
 			if isDragging {
-				columnContent.WriteString(renderCardTopLinesGhost(task.Title))
+				columnContent.WriteString(renderCardTopLinesGhost(task))
 			} else {
-				columnContent.WriteString(renderCardTopLines(task.Title, isSelected))
+				columnContent.WriteString(renderCardTopLines(task, isSelected))
 			}
 			columnContent.WriteString("\n")
 		}
