@@ -641,7 +641,13 @@ func (m Model) renderStatus() string {
 		chatHint = " | c Chat"
 	}
 
-	status := fmt.Sprintf("Column: %s%s%s%s%s | ? Help | / Filter | q Quit", colName, narrowInfo, taskInfo, filterInfo, chatHint)
+	// Show backend indicator
+	backendHint := " [YAML]"
+	if m.isBeadsBackend() {
+		backendHint = " [beads]"
+	}
+
+	status := fmt.Sprintf("%s | Column: %s%s%s%s%s | ? Help | B Backend | q Quit", backendHint, colName, narrowInfo, taskInfo, filterInfo, chatHint)
 
 	return styleStatus.Width(m.width).Render(status)
 }
@@ -790,6 +796,7 @@ VIEW
   Tab                 Toggle detail panel
   /                   Filter tasks
   Esc                 Clear filter
+  B                   Toggle beads/local backend
   ?                   Toggle this help screen
 
 RESPONSIVE LAYOUT

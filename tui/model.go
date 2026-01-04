@@ -502,3 +502,33 @@ func (m *Model) saveTaskForm() {
 
 	m.closeTaskForm()
 }
+
+// toggleBackend switches between beads and local backends
+func (m *Model) toggleBackend() {
+	// Check what backend we're currently using
+	_, isBeads := m.backend.(*BeadsBackend)
+
+	if isBeads {
+		// Switch to local backend
+		m.backend = NewLocalBackend("board.yaml")
+	} else {
+		// Switch to beads backend
+		m.backend = NewBeadsBackend()
+	}
+
+	// Reload the board with new backend
+	board, err := m.backend.LoadBoard()
+	if err == nil {
+		m.board = board
+		m.selectedColumn = 0
+		m.selectedTask = 0
+		m.cachedIssueDetails = nil
+		m.cachedIssueID = ""
+	}
+}
+
+// isBeadsBackend returns true if using beads backend
+func (m Model) isBeadsBackend() bool {
+	_, isBeads := m.backend.(*BeadsBackend)
+	return isBeads
+}

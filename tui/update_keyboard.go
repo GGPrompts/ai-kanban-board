@@ -149,6 +149,11 @@ func (m Model) handleBoardKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			go launchChatPopup(task, details)
 		}
 		return m, nil
+
+	case "B":
+		// Toggle between beads and local backend
+		m.toggleBackend()
+		return m, nil
 	}
 
 	return m, nil
