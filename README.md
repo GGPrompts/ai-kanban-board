@@ -52,6 +52,9 @@ TUI features:
 - Task filtering with `/` key
 - Priority and agent badges on cards
 - Beads issue tracker integration
+- Responsive column layout for narrow terminals
+- Enhanced detail panel with full issue info
+- Quick-add modal with type/priority shortcuts (Ctrl+T, Ctrl+P)
 
 ## Quick Start
 
