@@ -635,7 +635,13 @@ func (m Model) renderStatus() string {
 		narrowInfo = fmt.Sprintf(" [%d-%d/%d]", m.visibleColumnStart+1, endCol, len(m.board.Columns))
 	}
 
-	status := fmt.Sprintf("Column: %s%s%s%s | ? Help | / Filter | q Quit", colName, narrowInfo, taskInfo, filterInfo)
+	// Show chat hint if task is selected
+	var chatHint string
+	if task != nil {
+		chatHint = " | c Chat"
+	}
+
+	status := fmt.Sprintf("Column: %s%s%s%s%s | ? Help | / Filter | q Quit", colName, narrowInfo, taskInfo, filterInfo, chatHint)
 
 	return styleStatus.Width(m.width).Render(status)
 }
@@ -771,6 +777,7 @@ ACTIONS
   d                   Delete selected task
   m                   Move task to next column
   M                   Move task to previous column
+  c                   Chat with Claude about task (tmux popup)
   Mouse drag          Drag & drop tasks between columns
 
 QUICK-ADD FORM

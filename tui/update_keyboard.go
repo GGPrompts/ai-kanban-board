@@ -139,6 +139,16 @@ func (m Model) handleBoardKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.filterText = ""
 			return m, nil
 		}
+
+	case "c":
+		// Launch Claude chat popup with task context
+		task := m.getCurrentTask()
+		if task != nil {
+			// Try to get beads details for richer context
+			details := m.fetchIssueDetails()
+			go launchChatPopup(task, details)
+		}
+		return m, nil
 	}
 
 	return m, nil
