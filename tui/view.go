@@ -236,16 +236,19 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 		// Check if this is the task being dragged
 		isDragging := m.draggingTask != nil && m.dragFromColumn == colIndex && i == m.dragFromIndex
 
+		// Check if task matches filter (show as ghost if it doesn't match)
+		matchesFilter := m.taskMatchesFilter(task)
+
 		if isLastVisible {
 			// Last visible task - show full card
-			if isDragging {
+			if isDragging || !matchesFilter {
 				columnContent.WriteString(renderCardGhost(task))
 			} else {
 				columnContent.WriteString(renderCard(task, isSelected))
 			}
 		} else {
 			// Stacked task - show only top 2 lines
-			if isDragging {
+			if isDragging || !matchesFilter {
 				columnContent.WriteString(renderCardTopLinesGhost(task))
 			} else {
 				columnContent.WriteString(renderCardTopLines(task, isSelected))
@@ -345,6 +348,14 @@ func (m Model) renderDetailPanel() string {
 
 // renderStatus renders the status bar
 func (m Model) renderStatus() string {
+	// If filter input is active, show the filter input
+	if m.filterActive {
+		filterLabel := styleDetailLabel.Render("Filter: ")
+		filterInput := m.filterInput.View()
+		hint := styleSubdued.Render(" (Enter to apply, Esc to cancel)")
+		return styleStatus.Width(m.width).Render(filterLabel + filterInput + hint)
+	}
+
 	col := m.getCurrentColumn()
 	var colName string
 	if col != nil {
@@ -360,7 +371,13 @@ func (m Model) renderStatus() string {
 		}
 	}
 
-	status := fmt.Sprintf("Column: %s%s | ? Help | Tab Toggle Details | q Quit", colName, taskInfo)
+	// Show filter indicator if filter is set
+	var filterInfo string
+	if m.filterText != "" {
+		filterInfo = fmt.Sprintf(" | Filter: %s", m.filterText)
+	}
+
+	status := fmt.Sprintf("Column: %s%s%s | ? Help | / Filter | q Quit", colName, taskInfo, filterInfo)
 
 	return styleStatus.Width(m.width).Render(status)
 }
@@ -425,8 +442,8 @@ NAVIGATION
   End or G            Jump to last column
 
 ACTIONS
+  Enter or e          Open/edit selected task
   n                   Create new task
-  e                   Edit selected task
   d                   Delete selected task
   m                   Move task to next column
   M                   Move task to previous column
@@ -434,6 +451,8 @@ ACTIONS
 
 VIEW
   Tab                 Toggle detail panel
+  /                   Filter tasks
+  Esc                 Clear filter
   ?                   Toggle this help screen
 
 QUIT
@@ -449,4 +468,33 @@ Press any key to return to the board...
 	sections = append(sections, helpStyle.Render(helpContent))
 
 	return lipgloss.JoinVertical(lipgloss.Left, sections...)
+}
+
+// taskMatchesFilter checks if a task matches the current filter text
+func (m Model) taskMatchesFilter(task *Task) bool {
+	if m.filterText == "" {
+		return true
+	}
+
+	filter := strings.ToLower(m.filterText)
+	title := strings.ToLower(task.Title)
+	desc := strings.ToLower(task.Description)
+
+	// Match against title or description
+	return strings.Contains(title, filter) || strings.Contains(desc, filter)
+}
+
+// getFilteredTasks returns tasks that match the current filter
+func (m Model) getFilteredTasks(col Column) []*Task {
+	if m.filterText == "" {
+		return col.Tasks
+	}
+
+	var filtered []*Task
+	for _, task := range col.Tasks {
+		if m.taskMatchesFilter(task) {
+			filtered = append(filtered, task)
+		}
+	}
+	return filtered
 }

@@ -1,11 +1,17 @@
 package main
 
 import (
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 // handleKeyMsg handles keyboard input
 func (m Model) handleKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	// Handle filter input first if filter is active
+	if m.filterActive {
+		return m.handleFilterKeyMsg(msg)
+	}
+
 	// Handle form input first if form is open
 	if m.formMode != FormNone {
 		return m.handleFormKeyMsg(msg)
@@ -92,8 +98,8 @@ func (m Model) handleBoardKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.openCreateTaskForm()
 		return m, nil
 
-	case "e":
-		// Edit task
+	case "e", "enter":
+		// Edit task (Enter also selects/opens the task)
 		m.openEditTaskForm()
 		return m, nil
 
@@ -115,9 +121,64 @@ func (m Model) handleBoardKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Move task to previous column
 		m.moveTaskToPrevColumn()
 		return m, nil
+
+	case "/":
+		// Open filter input
+		m.openFilter()
+		return m, nil
+
+	case "esc":
+		// Clear filter if active
+		if m.filterText != "" {
+			m.filterText = ""
+			return m, nil
+		}
 	}
 
 	return m, nil
+}
+
+// handleFilterKeyMsg handles keyboard input when filter is active
+func (m Model) handleFilterKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch msg.String() {
+	case "esc":
+		// Cancel filter, restore previous text
+		m.closeFilter()
+		return m, nil
+
+	case "enter":
+		// Apply filter and close filter input
+		m.filterText = m.filterInput.Value()
+		m.filterActive = false
+		return m, nil
+
+	case "ctrl+c":
+		// Also cancel filter on ctrl+c
+		m.closeFilter()
+		return m, nil
+	}
+
+	// Update the filter input
+	m.filterInput, cmd = m.filterInput.Update(msg)
+	return m, cmd
+}
+
+// openFilter activates the filter input
+func (m *Model) openFilter() {
+	m.filterActive = true
+	m.filterInput = textinput.New()
+	m.filterInput.Placeholder = "Filter tasks..."
+	m.filterInput.CharLimit = 100
+	m.filterInput.Width = 30
+	m.filterInput.SetValue(m.filterText)
+	m.filterInput.Focus()
+}
+
+// closeFilter deactivates the filter input
+func (m *Model) closeFilter() {
+	m.filterActive = false
 }
 
 // handleHelpKeyMsg handles keyboard input for help view

@@ -197,6 +197,11 @@ type Model struct {
 	lastClickTime time.Time
 	lastClickX    int
 	lastClickY    int
+
+	// Filter state
+	filterActive bool              // Whether filter mode is active
+	filterInput  textinput.Model   // Text input for filtering
+	filterText   string            // Current filter text (applied when Enter pressed)
 }
 
 // boardLoadedMsg is sent when the board has been loaded
