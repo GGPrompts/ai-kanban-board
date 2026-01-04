@@ -193,6 +193,10 @@ type Model struct {
 	confirmingDelete bool   // Whether we're showing delete confirmation
 	deletingTaskID   string // ID of task pending deletion
 
+	// Quick-add form state
+	formIssueType string   // Selected issue type: task, bug, feature
+	formPriority  Priority // Selected priority level
+
 	// Double-click detection
 	lastClickTime time.Time
 	lastClickX    int

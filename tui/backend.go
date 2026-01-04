@@ -15,7 +15,7 @@ type Backend interface {
 	SaveBoard(*Board) error
 	MoveTask(taskID string, toColumn string) error
 	UpdateTask(task *Task) error
-	CreateTask(title, description, columnID string, priority Priority) (*Task, error)
+	CreateTask(title, description, columnID, issueType string, priority Priority) (*Task, error)
 	DeleteTask(taskID string) error
 }
 
@@ -106,7 +106,7 @@ func (l *LocalBackend) UpdateTask(task *Task) error {
 }
 
 // CreateTask creates a new task
-func (l *LocalBackend) CreateTask(title, description, columnID string, priority Priority) (*Task, error) {
+func (l *LocalBackend) CreateTask(title, description, columnID, issueType string, priority Priority) (*Task, error) {
 	board, err := l.LoadBoard()
 	if err != nil {
 		return nil, err
@@ -122,6 +122,11 @@ func (l *LocalBackend) CreateTask(title, description, columnID string, priority 
 		}
 	}
 
+	// Default to "task" if no type specified
+	if issueType == "" {
+		issueType = "task"
+	}
+
 	now := time.Now()
 	newTask := &Task{
 		ID:          fmt.Sprintf("task-%d", maxID+1),
@@ -129,6 +134,7 @@ func (l *LocalBackend) CreateTask(title, description, columnID string, priority 
 		Description: description,
 		ColumnID:    columnID,
 		Priority:    priority,
+		Labels:      []string{issueType},
 		CreatedAt:   now,
 		UpdatedAt:   now,
 		IsReady:     true,
