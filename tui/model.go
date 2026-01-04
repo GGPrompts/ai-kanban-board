@@ -21,13 +21,18 @@ func NewModelWithBackend(board *Board, backend Backend) Model {
 		viewMode:           ViewBoard,
 		selectedColumn:     0,
 		selectedTask:       0,
-		showDetails:        true,  // Start with details panel visible
+		showDetails:        true, // Start with details panel visible
 		width:              0,
 		height:             0,
 		ready:              false,
 		dropTargetColumn:   -1, // Initialize drop target as invalid
 		dropTargetIndex:    -1,
 		columnScrollOffset: make(map[int]int),
+		// Responsive layout defaults
+		narrowMode:         false,
+		visibleColumnStart: 0,
+		visibleColumnCount: 0,  // 0 means show all
+		minColumnWidth:     18, // cardWidth (14) + 4 for borders/padding
 	}
 }
 
@@ -53,6 +58,79 @@ func (m *Model) calculateLayout() {
 		// Detail panel hidden: Board gets 100%
 		m.boardWidth = m.width
 		m.detailWidth = 0
+	}
+
+	// Calculate responsive column layout
+	m.calculateResponsiveColumns()
+}
+
+// calculateResponsiveColumns determines how many columns can fit and if we need narrow mode
+func (m *Model) calculateResponsiveColumns() {
+	if m.board == nil || len(m.board.Columns) == 0 {
+		m.narrowMode = false
+		m.visibleColumnCount = 0
+		return
+	}
+
+	numColumns := len(m.board.Columns)
+
+	// Calculate how many columns can fit at minimum width
+	maxVisibleColumns := m.boardWidth / m.minColumnWidth
+	if maxVisibleColumns < 1 {
+		maxVisibleColumns = 1 // Always show at least one column
+	}
+
+	if maxVisibleColumns >= numColumns {
+		// All columns fit - no narrow mode needed
+		m.narrowMode = false
+		m.visibleColumnCount = numColumns
+		m.visibleColumnStart = 0
+	} else {
+		// Need narrow mode - only show subset of columns
+		m.narrowMode = true
+		m.visibleColumnCount = maxVisibleColumns
+
+		// Ensure visibleColumnStart is valid
+		if m.visibleColumnStart < 0 {
+			m.visibleColumnStart = 0
+		}
+		maxStart := numColumns - m.visibleColumnCount
+		if m.visibleColumnStart > maxStart {
+			m.visibleColumnStart = maxStart
+		}
+
+		// Ensure selected column is visible
+		m.ensureSelectedColumnVisible()
+	}
+}
+
+// ensureSelectedColumnVisible adjusts visibleColumnStart to show the selected column
+func (m *Model) ensureSelectedColumnVisible() {
+	if !m.narrowMode || m.visibleColumnCount <= 0 {
+		return
+	}
+
+	// If selected column is before visible range, scroll left
+	if m.selectedColumn < m.visibleColumnStart {
+		m.visibleColumnStart = m.selectedColumn
+	}
+
+	// If selected column is after visible range, scroll right
+	if m.selectedColumn >= m.visibleColumnStart+m.visibleColumnCount {
+		m.visibleColumnStart = m.selectedColumn - m.visibleColumnCount + 1
+	}
+
+	// Clamp to valid range
+	numColumns := len(m.board.Columns)
+	maxStart := numColumns - m.visibleColumnCount
+	if maxStart < 0 {
+		maxStart = 0
+	}
+	if m.visibleColumnStart > maxStart {
+		m.visibleColumnStart = maxStart
+	}
+	if m.visibleColumnStart < 0 {
+		m.visibleColumnStart = 0
 	}
 }
 
@@ -104,6 +182,8 @@ func (m *Model) moveSelectionLeft() {
 				m.selectedTask = 0
 			}
 		}
+		// Ensure the selected column is visible in narrow mode
+		m.ensureSelectedColumnVisible()
 	}
 }
 
@@ -120,6 +200,8 @@ func (m *Model) moveSelectionRight() {
 				m.selectedTask = 0
 			}
 		}
+		// Ensure the selected column is visible in narrow mode
+		m.ensureSelectedColumnVisible()
 	}
 }
 

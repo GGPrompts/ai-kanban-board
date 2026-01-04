@@ -139,9 +139,9 @@ const (
 type FormMode int
 
 const (
-	FormNone FormMode = iota // No form active
-	FormCreateTask           // Creating a new task
-	FormEditTask             // Editing an existing task
+	FormNone       FormMode = iota // No form active
+	FormCreateTask                 // Creating a new task
+	FormEditTask                   // Editing an existing task
 )
 
 // Model is the Bubbletea model for the TUI application
@@ -184,10 +184,10 @@ type Model struct {
 	columnScrollOffset map[int]int
 
 	// Task form state (for creating/editing tasks)
-	formMode       FormMode            // Whether we're creating or editing a task
-	formInputs     []textinput.Model   // Text inputs for the form
-	formFocusIndex int                 // Which input is currently focused
-	editingTaskID  string              // ID of task being edited (empty if creating)
+	formMode       FormMode          // Whether we're creating or editing a task
+	formInputs     []textinput.Model // Text inputs for the form
+	formFocusIndex int               // Which input is currently focused
+	editingTaskID  string            // ID of task being edited (empty if creating)
 
 	// Delete confirmation
 	confirmingDelete bool   // Whether we're showing delete confirmation
@@ -199,9 +199,15 @@ type Model struct {
 	lastClickY    int
 
 	// Filter state
-	filterActive bool              // Whether filter mode is active
-	filterInput  textinput.Model   // Text input for filtering
-	filterText   string            // Current filter text (applied when Enter pressed)
+	filterActive bool            // Whether filter mode is active
+	filterInput  textinput.Model // Text input for filtering
+	filterText   string          // Current filter text (applied when Enter pressed)
+
+	// Responsive layout state
+	narrowMode         bool // Whether we're in narrow/responsive mode
+	visibleColumnStart int  // First visible column index (for horizontal scrolling)
+	visibleColumnCount int  // Number of columns that can fit on screen
+	minColumnWidth     int  // Minimum readable column width (set to 18 for cardWidth + padding)
 }
 
 // boardLoadedMsg is sent when the board has been loaded

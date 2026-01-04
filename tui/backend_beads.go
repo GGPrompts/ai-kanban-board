@@ -37,12 +37,12 @@ type BeadsIssue struct {
 
 // Column ID to status mapping
 const (
-	ColBacklog     = "col-1" // open
-	ColReady       = "col-2"
-	ColInProgress  = "col-3" // in_progress
-	ColAIWorking   = "col-4"
-	ColReview      = "col-5"
-	ColDone        = "col-6" // closed
+	ColBacklog    = "col-1" // open
+	ColReady      = "col-2"
+	ColInProgress = "col-3" // in_progress
+	ColAIWorking  = "col-4"
+	ColReview     = "col-5"
+	ColDone       = "col-6" // closed
 )
 
 // NewBeadsBackend creates a new beads CLI backend

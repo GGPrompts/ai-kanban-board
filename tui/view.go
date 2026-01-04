@@ -13,9 +13,10 @@ func (m Model) View() string {
 		return "Loading..."
 	}
 
-	// Check minimum size
-	if m.width < 80 || m.height < 20 {
-		return fmt.Sprintf("Terminal too small (%d x %d). Need at least 80 x 20.", m.width, m.height)
+	// Check minimum size - reduced for narrow mode support
+	minWidth := 40 // Allow narrower terminals with responsive column layout
+	if m.width < minWidth || m.height < 20 {
+		return fmt.Sprintf("Terminal too small (%d x %d). Need at least %d x 20.", m.width, m.height, minWidth)
 	}
 
 	// Render based on view mode
@@ -120,7 +121,24 @@ func (m Model) renderBoard() string {
 func (m Model) renderColumnHeaders() string {
 	var headers []string
 
-	for i, col := range m.board.Columns {
+	// Determine which columns to render
+	startCol, endCol, visibleCount := m.getVisibleColumnRange()
+	colWidth := m.boardWidth / visibleCount
+
+	// Left scroll indicator if in narrow mode and not at start
+	if m.narrowMode && m.visibleColumnStart > 0 {
+		indicator := fmt.Sprintf("◀ %d", m.visibleColumnStart)
+		indicatorWidth := 5
+		headers = append(headers, lipgloss.NewStyle().
+			Width(indicatorWidth).
+			Foreground(colorSecondary).
+			Bold(true).
+			Render(indicator))
+		colWidth = (m.boardWidth - 10) / visibleCount // Adjust for indicators
+	}
+
+	for i := startCol; i < endCol; i++ {
+		col := m.board.Columns[i]
 		count := len(col.Tasks)
 		label := fmt.Sprintf("%s (%d)", col.Title, count)
 
@@ -133,22 +151,74 @@ func (m Model) renderColumnHeaders() string {
 			style = styleColumnHeaderSelected
 		}
 
-		// Each column gets equal width
-		colWidth := m.boardWidth / len(m.board.Columns)
 		headers = append(headers, style.Width(colWidth).Render(label))
+	}
+
+	// Right scroll indicator if in narrow mode and not at end
+	if m.narrowMode && endCol < len(m.board.Columns) {
+		remaining := len(m.board.Columns) - endCol
+		indicator := fmt.Sprintf("%d ▶", remaining)
+		indicatorWidth := 5
+		headers = append(headers, lipgloss.NewStyle().
+			Width(indicatorWidth).
+			Foreground(colorSecondary).
+			Bold(true).
+			Align(lipgloss.Right).
+			Render(indicator))
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, headers...)
 }
 
+// getVisibleColumnRange returns the start index, end index, and count of visible columns
+func (m Model) getVisibleColumnRange() (start, end, count int) {
+	if !m.narrowMode || m.visibleColumnCount <= 0 {
+		// Show all columns
+		return 0, len(m.board.Columns), len(m.board.Columns)
+	}
+
+	start = m.visibleColumnStart
+	end = m.visibleColumnStart + m.visibleColumnCount
+	if end > len(m.board.Columns) {
+		end = len(m.board.Columns)
+	}
+	count = m.visibleColumnCount
+	return start, end, count
+}
+
 // renderColumns renders all columns with their tasks
 func (m Model) renderColumns(contentHeight int) string {
 	var columns []string
-	colWidth := m.boardWidth / len(m.board.Columns)
 
-	for i, col := range m.board.Columns {
+	// Determine which columns to render
+	startCol, endCol, visibleCount := m.getVisibleColumnRange()
+	colWidth := m.boardWidth / visibleCount
+
+	// Left scroll indicator space if in narrow mode and not at start
+	if m.narrowMode && m.visibleColumnStart > 0 {
+		indicatorWidth := 5
+		colWidth = (m.boardWidth - 10) / visibleCount // Adjust for indicators
+		// Empty space for left indicator alignment with header
+		columns = append(columns, lipgloss.NewStyle().
+			Width(indicatorWidth).
+			Height(contentHeight).
+			Render(""))
+	}
+
+	for i := startCol; i < endCol; i++ {
+		col := m.board.Columns[i]
 		columnContent := m.renderColumn(col, i, contentHeight, colWidth)
 		columns = append(columns, columnContent)
+	}
+
+	// Right scroll indicator space if in narrow mode and not at end
+	if m.narrowMode && endCol < len(m.board.Columns) {
+		indicatorWidth := 5
+		// Empty space for right indicator alignment with header
+		columns = append(columns, lipgloss.NewStyle().
+			Width(indicatorWidth).
+			Height(contentHeight).
+			Render(""))
 	}
 
 	return lipgloss.JoinHorizontal(lipgloss.Top, columns...)
@@ -377,7 +447,17 @@ func (m Model) renderStatus() string {
 		filterInfo = fmt.Sprintf(" | Filter: %s", m.filterText)
 	}
 
-	status := fmt.Sprintf("Column: %s%s%s | ? Help | / Filter | q Quit", colName, taskInfo, filterInfo)
+	// Show narrow mode indicator with column position
+	var narrowInfo string
+	if m.narrowMode {
+		endCol := m.visibleColumnStart + m.visibleColumnCount
+		if endCol > len(m.board.Columns) {
+			endCol = len(m.board.Columns)
+		}
+		narrowInfo = fmt.Sprintf(" [%d-%d/%d]", m.visibleColumnStart+1, endCol, len(m.board.Columns))
+	}
+
+	status := fmt.Sprintf("Column: %s%s%s%s | ? Help | / Filter | q Quit", colName, narrowInfo, taskInfo, filterInfo)
 
 	return styleStatus.Width(m.width).Render(status)
 }
@@ -454,6 +534,11 @@ VIEW
   /                   Filter tasks
   Esc                 Clear filter
   ?                   Toggle this help screen
+
+RESPONSIVE LAYOUT
+  Narrow terminals show fewer columns at once.
+  Use h/l to scroll through columns automatically.
+  Status bar shows [visible/total] column range.
 
 QUIT
   q or Ctrl+C         Exit the application
