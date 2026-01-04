@@ -180,6 +180,9 @@ type Model struct {
 	dropTargetColumn int // Column where task would be dropped (-1 if none)
 	dropTargetIndex  int // Position where task would be inserted
 
+	// Scroll state per column (tracks first visible task index)
+	columnScrollOffset map[int]int
+
 	// Task form state (for creating/editing tasks)
 	formMode       FormMode            // Whether we're creating or editing a task
 	formInputs     []textinput.Model   // Text inputs for the form

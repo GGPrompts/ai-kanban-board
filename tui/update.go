@@ -33,6 +33,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.height = msg.Height
 		m.ready = true
 		m.calculateLayout()
+		m.updateScrollOffset() // Recalculate scroll for new size
 		return m, nil
 
 	case boardLoadedMsg:

@@ -109,6 +109,7 @@ func (m Model) handleMousePress(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	// Immediately select the task (visual feedback)
 	m.selectedColumn = colIndex
 	m.selectedTask = taskIndex
+	m.updateScrollOffset()
 
 	// Store potential drag info but don't start dragging yet
 	m.potentialDrag = true
@@ -170,26 +171,48 @@ func (m Model) getTaskIndexInColumn(col Column, relY int) int {
 		return -1
 	}
 
-	// Each stacked task takes 2 lines (top lines only)
-	// Last task takes full card height
-	numTasks := len(col.Tasks)
+	// Get the scroll offset for this column
+	colIndex := m.getColumnAtPosition(m.mousePressX, 0)
+	scrollOffset := 0
+	if colIndex >= 0 && m.columnScrollOffset != nil {
+		scrollOffset = m.columnScrollOffset[colIndex]
+	}
 
-	// Calculate position based on stacking
-	// First (numTasks-1) tasks take 2 lines each
-	// Last task takes cardHeight lines
-	for i := 0; i < numTasks-1; i++ {
-		if relY < (i+1)*2 {
-			return i
+	// Account for scroll indicator if present (adds 1 line)
+	if scrollOffset > 0 {
+		relY-- // Subtract the scroll indicator line
+		if relY < 0 {
+			return scrollOffset // Clicked on scroll indicator, select first visible task
 		}
 	}
 
-	// Check if in last card
-	lastCardStart := (numTasks - 1) * 2
-	if relY >= lastCardStart && relY < lastCardStart+cardHeight {
-		return numTasks - 1
+	// Calculate how many tasks are visible
+	contentHeight := m.getContentHeight()
+	maxStackedTasks := (contentHeight - cardHeight) / 2
+	if maxStackedTasks < 0 {
+		maxStackedTasks = 0
 	}
 
-	return numTasks - 1 // Default to last card
+	tasksToShow := len(col.Tasks)
+	if tasksToShow > maxStackedTasks+1 {
+		tasksToShow = maxStackedTasks + 1
+	}
+
+	// Each stacked task takes 2 lines (top lines only)
+	// Last visible task takes full card height
+	for i := 0; i < tasksToShow-1; i++ {
+		if relY < (i+1)*2 {
+			return scrollOffset + i
+		}
+	}
+
+	// Check if in last visible card
+	lastCardStart := (tasksToShow - 1) * 2
+	if relY >= lastCardStart && relY < lastCardStart+cardHeight {
+		return scrollOffset + tasksToShow - 1
+	}
+
+	return scrollOffset + tasksToShow - 1 // Default to last visible task
 }
 
 // getDropPosition returns the column and insert index for a drop at the given position
@@ -213,15 +236,40 @@ func (m Model) getDropPosition(x, y int) (int, int) {
 		return colIndex, 0 // Insert at beginning of empty column
 	}
 
-	// Find insert position based on Y coordinate
-	numTasks := len(col.Tasks)
-	for i := 0; i < numTasks; i++ {
-		taskY := i * 2 // Each stacked task takes 2 lines
-		if relY < taskY+1 {
-			return colIndex, i
+	// Get scroll offset for this column
+	scrollOffset := 0
+	if m.columnScrollOffset != nil {
+		scrollOffset = m.columnScrollOffset[colIndex]
+	}
+
+	// Account for scroll indicator if present (adds 1 line)
+	if scrollOffset > 0 {
+		relY-- // Subtract the scroll indicator line
+		if relY < 0 {
+			return colIndex, scrollOffset // Drop at first visible position
 		}
 	}
 
-	// Below all tasks - insert at end
-	return colIndex, numTasks
+	// Calculate how many tasks are visible
+	contentHeight := m.getContentHeight()
+	maxStackedTasks := (contentHeight - cardHeight) / 2
+	if maxStackedTasks < 0 {
+		maxStackedTasks = 0
+	}
+
+	tasksToShow := len(col.Tasks)
+	if tasksToShow > maxStackedTasks+1 {
+		tasksToShow = maxStackedTasks + 1
+	}
+
+	// Find insert position based on Y coordinate within visible range
+	for i := 0; i < tasksToShow; i++ {
+		taskY := i * 2 // Each stacked task takes 2 lines
+		if relY < taskY+1 {
+			return colIndex, scrollOffset + i
+		}
+	}
+
+	// Below all visible tasks - insert at end
+	return colIndex, len(col.Tasks)
 }

@@ -186,12 +186,43 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 		tasksToShow = maxStackedTasks + 1
 	}
 
-	startIndex := len(col.Tasks) - tasksToShow
+	// Get scroll offset from model if this is the selected column
+	var startIndex int
+	if colIndex == m.selectedColumn && m.columnScrollOffset != nil {
+		startIndex = m.columnScrollOffset[colIndex]
+	} else {
+		// Default: show last tasks (newest at bottom)
+		startIndex = len(col.Tasks) - tasksToShow
+		if startIndex < 0 {
+			startIndex = 0
+		}
+	}
+
+	// Clamp startIndex
 	if startIndex < 0 {
 		startIndex = 0
 	}
+	maxStart := len(col.Tasks) - tasksToShow
+	if maxStart < 0 {
+		maxStart = 0
+	}
+	if startIndex > maxStart {
+		startIndex = maxStart
+	}
 
-	for i := startIndex; i < len(col.Tasks); i++ {
+	// Calculate end index for the visible range
+	endIndex := startIndex + tasksToShow
+	if endIndex > len(col.Tasks) {
+		endIndex = len(col.Tasks)
+	}
+
+	// Show scroll indicator if there are hidden tasks above
+	if startIndex > 0 {
+		hiddenAbove := fmt.Sprintf("↑ %d more", startIndex)
+		columnContent.WriteString(styleSubdued.Render(hiddenAbove) + "\n")
+	}
+
+	for i := startIndex; i < endIndex; i++ {
 		// Show drop indicator before this task if needed
 		if showDropIndicator && m.dropTargetIndex == i {
 			dropLine := strings.Repeat("-", cardWidth)
@@ -199,14 +230,14 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 		}
 
 		task := col.Tasks[i]
-		isLast := i == len(col.Tasks)-1
+		isLastVisible := i == endIndex-1
 		isSelected := colIndex == m.selectedColumn && i == m.selectedTask
 
 		// Check if this is the task being dragged
 		isDragging := m.draggingTask != nil && m.dragFromColumn == colIndex && i == m.dragFromIndex
 
-		if isLast {
-			// Last task - show full card
+		if isLastVisible {
+			// Last visible task - show full card
 			if isDragging {
 				columnContent.WriteString(renderCardGhost(task.Title))
 			} else {
@@ -227,6 +258,12 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 	if showDropIndicator && m.dropTargetIndex == len(col.Tasks) {
 		dropLine := strings.Repeat("-", cardWidth)
 		columnContent.WriteString("\n" + styleDropIndicator.Render(dropLine))
+	}
+
+	// Show scroll indicator if there are hidden tasks below
+	if endIndex < len(col.Tasks) {
+		hiddenBelow := fmt.Sprintf("↓ %d more", len(col.Tasks)-endIndex)
+		columnContent.WriteString("\n" + styleSubdued.Render(hiddenBelow))
 	}
 
 	return lipgloss.NewStyle().

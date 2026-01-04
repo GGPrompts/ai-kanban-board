@@ -55,29 +55,35 @@ func (m Model) handleBoardKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Navigation
 	case "left", "h":
 		m.moveSelectionLeft()
+		m.updateScrollOffset()
 		return m, nil
 
 	case "right", "l":
 		m.moveSelectionRight()
+		m.updateScrollOffset()
 		return m, nil
 
 	case "up", "k":
 		m.moveSelectionUp()
+		m.updateScrollOffset()
 		return m, nil
 
 	case "down", "j":
 		m.moveSelectionDown()
+		m.updateScrollOffset()
 		return m, nil
 
 	// Jump to first/last column
 	case "home", "g":
 		m.selectedColumn = 0
 		m.selectedTask = 0
+		m.updateScrollOffset()
 		return m, nil
 
 	case "end", "G":
 		m.selectedColumn = len(m.board.Columns) - 1
 		m.selectedTask = 0
+		m.updateScrollOffset()
 		return m, nil
 
 	// Task creation and editing

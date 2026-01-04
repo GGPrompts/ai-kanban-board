@@ -40,3 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 tui/ai-kanban-board-tui
+
+# TUI binaries
+tui/ai-kanban-tui
+tui/ai-kanban-board-tui

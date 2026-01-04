@@ -16,17 +16,18 @@ func NewModel(board *Board) Model {
 // NewModelWithBackend creates a new Model with a specific backend
 func NewModelWithBackend(board *Board, backend Backend) Model {
 	return Model{
-		board:            board,
-		backend:          backend,
-		viewMode:         ViewBoard,
-		selectedColumn:   0,
-		selectedTask:     0,
-		showDetails:      true,  // Start with details panel visible
-		width:            0,
-		height:           0,
-		ready:            false,
-		dropTargetColumn: -1, // Initialize drop target as invalid
-		dropTargetIndex:  -1,
+		board:              board,
+		backend:            backend,
+		viewMode:           ViewBoard,
+		selectedColumn:     0,
+		selectedTask:       0,
+		showDetails:        true,  // Start with details panel visible
+		width:              0,
+		height:             0,
+		ready:              false,
+		dropTargetColumn:   -1, // Initialize drop target as invalid
+		dropTargetIndex:    -1,
+		columnScrollOffset: make(map[int]int),
 	}
 }
 
@@ -135,6 +136,56 @@ func (m *Model) moveSelectionDown() {
 	if col != nil && m.selectedTask < len(col.Tasks)-1 {
 		m.selectedTask++
 	}
+}
+
+// updateScrollOffset updates the scroll offset for the current column to ensure selected task is visible
+func (m *Model) updateScrollOffset() {
+	if m.columnScrollOffset == nil {
+		m.columnScrollOffset = make(map[int]int)
+	}
+
+	col := m.getCurrentColumn()
+	if col == nil || len(col.Tasks) == 0 {
+		m.columnScrollOffset[m.selectedColumn] = 0
+		return
+	}
+
+	contentHeight := m.getContentHeight()
+	maxStackedTasks := (contentHeight - cardHeight) / 2
+	if maxStackedTasks < 0 {
+		maxStackedTasks = 0
+	}
+
+	tasksToShow := len(col.Tasks)
+	if tasksToShow > maxStackedTasks+1 {
+		tasksToShow = maxStackedTasks + 1
+	}
+
+	// Get current scroll offset
+	startIndex := m.columnScrollOffset[m.selectedColumn]
+
+	// Ensure selected task is visible
+	if m.selectedTask < startIndex {
+		// Selected task is before visible range, scroll up
+		startIndex = m.selectedTask
+	} else if m.selectedTask >= startIndex+tasksToShow {
+		// Selected task is after visible range, scroll down
+		startIndex = m.selectedTask - tasksToShow + 1
+	}
+
+	// Clamp startIndex
+	if startIndex < 0 {
+		startIndex = 0
+	}
+	maxStart := len(col.Tasks) - tasksToShow
+	if maxStart < 0 {
+		maxStart = 0
+	}
+	if startIndex > maxStart {
+		startIndex = maxStart
+	}
+
+	m.columnScrollOffset[m.selectedColumn] = startIndex
 }
 
 // moveTask moves a task from one position to another (within or across columns)
