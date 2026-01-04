@@ -46,6 +46,13 @@ Pre-configured workflow templates with agents and prompts:
 - **Bubbles** - UI components
 - Located in `tui/` subdirectory
 
+TUI features:
+- Keyboard navigation (arrow keys, vim bindings h/j/k/l)
+- Mouse drag-and-drop between columns
+- Task filtering with `/` key
+- Priority and agent badges on cards
+- Beads issue tracker integration
+
 ## Quick Start
 
 ### Web Interface
@@ -123,6 +130,18 @@ Create custom agent configurations with:
 - **AgentProfile** - Name, avatar, description, base type
 - **AgentCapabilities** - Skills, MCP servers, subagents, slash commands
 - **AgentCLIConfig** - CLI flags, env vars, permission mode
+
+Manage agents via the **Agent Panel**:
+- Grid/list view toggle with drag reorder
+- Search and filter by agent type
+- Quick actions: duplicate, delete, export
+- Tabbed editor for full configuration
+
+**Capability Toggles** - Before running a task, toggle specific agent capabilities:
+- Skills and slash commands
+- MCP server connections
+- Subagent availability
+- Permission mode overrides
 
 Custom profiles are stored in localStorage via Zustand.
 
