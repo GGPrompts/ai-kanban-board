@@ -67,9 +67,10 @@ interface KanbanCardProps {
   task: Task
   isOverlay?: boolean
   columnAgent?: AgentType // Agent assigned to the parent column
+  isDoneColumn?: boolean // Whether task is in a "Done" column (closed tasks)
 }
 
-export function KanbanCard({ task, isOverlay = false, columnAgent }: KanbanCardProps) {
+export function KanbanCard({ task, isOverlay = false, columnAgent, isDoneColumn = false }: KanbanCardProps) {
   const setSelectedTask = useBoardStore((state) => state.setSelectedTask)
   const graphMetrics = useGraphMetricsContextSafe()
 
@@ -122,7 +123,8 @@ export function KanbanCard({ task, isOverlay = false, columnAgent }: KanbanCardP
   // Dependency state - prefer graph metrics when available
   const hasBlockers = taskMetrics ? taskMetrics.inDegree > 0 : (task.blockedBy && task.blockedBy.length > 0)
   const blocksOthers = taskMetrics ? taskMetrics.outDegree > 0 : (task.blocking && task.blocking.length > 0)
-  const isReady = taskMetrics ? taskMetrics.inDegree === 0 : task.isReady
+  // Don't show "Ready" status for tasks in Done column - they're already completed
+  const isReady = isDoneColumn ? false : (taskMetrics ? taskMetrics.inDegree === 0 : task.isReady)
   const isCriticalPath = taskMetrics?.isCriticalPath ?? task.criticalPath
 
   // Graph-computed metrics for enhanced badges
