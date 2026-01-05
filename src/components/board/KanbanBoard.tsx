@@ -146,11 +146,19 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
   const syncBeadsTasks = useBoardStore((state) => state.syncBeadsTasks)
 
   // Sync beads tasks to store so TaskModal can find them
-  useEffect(() => {
-    if (beadsMode && beadsAvailable && tasks.length > 0) {
-      syncBeadsTasks(tasks)
+  // Use beadsTasksByColumn directly to avoid loop (tasks memo depends on localTasks which changes on sync)
+  const beadsTasksFlat = useMemo(() => {
+    if (beadsMode && beadsAvailable) {
+      return Array.from(beadsTasksByColumn.values()).flat()
     }
-  }, [beadsMode, beadsAvailable, tasks, syncBeadsTasks])
+    return []
+  }, [beadsMode, beadsAvailable, beadsTasksByColumn])
+
+  useEffect(() => {
+    if (beadsTasksFlat.length > 0) {
+      syncBeadsTasks(beadsTasksFlat)
+    }
+  }, [beadsTasksFlat, syncBeadsTasks])
 
   // Toggle beads mode
   const toggleBeadsMode = useCallback(() => {
