@@ -147,6 +147,13 @@ export function mapBeadsToTask(
           prNumber: issue.pr,
         }
       : undefined,
+    // Beads-specific metadata
+    beadsMetadata: {
+      isBeadsTask: true,
+      type: issue.type,
+      closeReason: issue.closeReason,
+      beadsStatus: issue.status,
+    },
     createdAt: issue.createdAt ? new Date(issue.createdAt) : new Date(),
     updatedAt: issue.updatedAt ? new Date(issue.updatedAt) : new Date(),
   }
@@ -203,9 +210,15 @@ export function groupIssuesByColumn(
 }
 
 /**
- * Check if a task originated from beads (by ID format)
+ * Check if a task originated from beads
+ * First checks beadsMetadata flag, then falls back to ID pattern matching
  * Beads IDs typically follow pattern: project-xxx (e.g., kanban-mo4)
  */
 export function isBeadsTask(task: Task): boolean {
+  // Check metadata first if available
+  if (task.beadsMetadata?.isBeadsTask !== undefined) {
+    return task.beadsMetadata.isBeadsTask
+  }
+  // Fallback to ID pattern matching for backwards compatibility
   return /^[a-z]+-[a-z0-9]+$/i.test(task.id)
 }

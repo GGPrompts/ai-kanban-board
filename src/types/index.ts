@@ -155,6 +155,9 @@ export interface Task {
   // Code review
   diff?: DiffInfo
 
+  // Beads integration (issue tracker metadata)
+  beadsMetadata?: BeadsTaskMetadata
+
   // Metadata
   estimate?: string // e.g., "2h", "1d"
   dueDate?: Date
@@ -162,6 +165,18 @@ export interface Task {
   activities?: TaskActivity[]
   createdAt: Date
   updatedAt: Date
+}
+
+// Metadata from beads issue tracker
+export interface BeadsTaskMetadata {
+  // Issue type classification
+  type?: 'feature' | 'bug' | 'chore' | 'docs' | 'test' | 'refactor'
+  // Closure reason when status is 'closed'
+  closeReason?: string
+  // Original beads status
+  beadsStatus?: string
+  // Whether this task originated from beads
+  isBeadsTask: boolean
 }
 
 // Per-task Claude CLI configuration
