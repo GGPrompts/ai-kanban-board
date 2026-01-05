@@ -38,12 +38,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+// Tooltips temporarily disabled to fix infinite loop
+// import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 // Icon mapping for agent types
 const AGENT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -139,7 +135,7 @@ export function KanbanColumn({
   }
 
   return (
-    <TooltipProvider>
+    <>
       <motion.div
         ref={setSortableRef}
         initial={{ opacity: 0, y: 20 }}
@@ -240,57 +236,34 @@ export function KanbanColumn({
             <div className="flex items-center gap-2">
               {/* Running indicator */}
               {runningTasks > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30">
-                      <Activity className="h-3 w-3 text-emerald-400 animate-pulse" />
-                      <span className="text-[10px] font-medium text-emerald-400">
-                        {runningTasks}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="text-xs">{runningTasks} agent{runningTasks !== 1 ? 's' : ''} running</p>
-                  </TooltipContent>
-                </Tooltip>
+                <div
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30"
+                  title={`${runningTasks} agent${runningTasks !== 1 ? 's' : ''} running`}
+                >
+                  <Activity className="h-3 w-3 text-emerald-400 animate-pulse" />
+                  <span className="text-[10px] font-medium text-emerald-400">
+                    {runningTasks}
+                  </span>
+                </div>
               )}
 
               {/* Beads status badge */}
               {beadsMode && beadsStatusMeta && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div
-                      className={cn(
-                        "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
-                        beadsStatusMeta.bgColor,
-                        beadsStatusMeta.color,
-                        "border",
-                        beadsStatusMeta.borderColor
-                      )}
-                    >
-                      <span>{beadsStatusMeta.shortLabel}</span>
-                      {groupedColumns && groupedColumns.length > 0 && (
-                        <span className="opacity-60">+{groupedColumns.length}</span>
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium">{beadsStatusMeta.label}</p>
-                      <p className="text-[10px] text-zinc-400">{beadsStatusMeta.description}</p>
-                      {groupedColumns && groupedColumns.length > 0 && (
-                        <div className="pt-1 border-t border-zinc-700 mt-1">
-                          <p className="text-[10px] text-zinc-500">
-                            Same status as: {groupedColumns.map((c) => c.title).join(', ')}
-                          </p>
-                          <p className="text-[10px] text-amber-400 mt-0.5">
-                            Moving between these columns won&apos;t change beads status
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
+                <div
+                  className={cn(
+                    "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
+                    beadsStatusMeta.bgColor,
+                    beadsStatusMeta.color,
+                    "border",
+                    beadsStatusMeta.borderColor
+                  )}
+                  title={`${beadsStatusMeta.label}: ${beadsStatusMeta.description}${groupedColumns && groupedColumns.length > 0 ? ` (Same as: ${groupedColumns.map((c) => c.title).join(', ')})` : ''}`}
+                >
+                  <span>{beadsStatusMeta.shortLabel}</span>
+                  {groupedColumns && groupedColumns.length > 0 && (
+                    <span className="opacity-60">+{groupedColumns.length}</span>
+                  )}
+                </div>
               )}
 
               {/* Task count */}
@@ -306,32 +279,22 @@ export function KanbanColumn({
 
               {/* BQL filter indicator */}
               {column.isDynamic && column.bqlQuery && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="p-1 rounded bg-teal-500/20 border border-teal-500/30">
-                      <Filter className="h-3 w-3 text-teal-400" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="text-[10px] text-zinc-400 uppercase mb-1">BQL Filter</p>
-                    <p className="text-xs font-mono text-teal-300">{column.bqlQuery}</p>
-                  </TooltipContent>
-                </Tooltip>
+                <div
+                  className="p-1 rounded bg-teal-500/20 border border-teal-500/30"
+                  title={`BQL Filter: ${column.bqlQuery}`}
+                >
+                  <Filter className="h-3 w-3 text-teal-400" />
+                </div>
               )}
 
               {/* Prompt indicator */}
               {column.agentConfig?.systemPrompt && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="p-1 rounded bg-violet-500/20 border border-violet-500/30">
-                      <FileText className="h-3 w-3 text-violet-400" />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="text-[10px] text-zinc-400 uppercase mb-1">Step Prompt</p>
-                    <p className="text-xs line-clamp-3">{column.agentConfig.systemPrompt}</p>
-                  </TooltipContent>
-                </Tooltip>
+                <div
+                  className="p-1 rounded bg-violet-500/20 border border-violet-500/30"
+                  title={`Step Prompt: ${column.agentConfig.systemPrompt.slice(0, 100)}...`}
+                >
+                  <FileText className="h-3 w-3 text-violet-400" />
+                </div>
               )}
 
               {/* Column menu */}
@@ -435,6 +398,6 @@ export function KanbanColumn({
         open={configOpen}
         onOpenChange={setConfigOpen}
       />
-    </TooltipProvider>
+    </>
   )
 }
