@@ -11,6 +11,7 @@ import type { Task, Column } from '@/types'
 import {
   groupIssuesByColumn,
   mapColumnToBeadsStatus,
+  mapKanbanPriorityToBeads,
   isBeadsTask,
 } from '@/lib/beads/mappers'
 
@@ -75,6 +76,8 @@ export interface UseBeadsIssuesResult {
   refresh: () => Promise<void>
   /** Update issue status on column change */
   syncTaskColumn: (taskId: string, newColumn: Column) => Promise<boolean>
+  /** Sync task details (title, description, priority, etc.) to beads */
+  syncTaskDetails: (taskId: string, updates: Partial<Task>) => Promise<boolean>
 }
 
 /**
@@ -184,6 +187,54 @@ export function useBeadsIssues({
     [tasksByColumn, refresh]
   )
 
+  // Sync task details (title, description, priority, etc.) to beads
+  const syncTaskDetails = useCallback(
+    async (taskId: string, updates: Partial<Task>): Promise<boolean> => {
+      // Only sync tasks that came from beads (check by ID format)
+      if (!isBeadsTask({ id: taskId } as Task)) {
+        return false
+      }
+
+      // Build beads update payload from task updates
+      const payload: BeadsUpdatePayload = {}
+
+      if (updates.title !== undefined) {
+        payload.title = updates.title
+      }
+      if (updates.description !== undefined) {
+        payload.description = updates.description
+      }
+      if (updates.priority !== undefined) {
+        payload.priority = mapKanbanPriorityToBeads(updates.priority)
+      }
+      if (updates.labels !== undefined) {
+        payload.labels = updates.labels
+      }
+      if (updates.estimate !== undefined) {
+        payload.estimate = updates.estimate
+      }
+      if (updates.assignee !== undefined) {
+        payload.assignee = updates.assignee
+      }
+
+      // Only sync if there are beads-relevant fields to update
+      if (Object.keys(payload).length === 0) {
+        return false
+      }
+
+      try {
+        await updateBeadsIssue(taskId, payload)
+        // Don't refresh here as it would cause flicker during typing
+        // The local state is already updated by the store
+        return true
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to sync task to beads')
+        return false
+      }
+    },
+    []
+  )
+
   // Compute flat list of all tasks
   const allTasks = Array.from(tasksByColumn.values()).flat()
 
@@ -196,6 +247,7 @@ export function useBeadsIssues({
     isAvailable,
     refresh,
     syncTaskColumn,
+    syncTaskDetails,
   }
 }
 
@@ -210,4 +262,71 @@ export function useBeadsAvailable(): boolean {
   }, [])
 
   return available
+}
+
+/**
+ * Simple hook to sync task details to beads
+ * Use this when you need to sync task edits without the full useBeadsIssues setup
+ */
+export function useSyncBeadsTask(): {
+  syncTaskDetails: (taskId: string, updates: Partial<Task>) => Promise<boolean>
+  isAvailable: boolean
+} {
+  const [isAvailable, setIsAvailable] = useState(false)
+
+  useEffect(() => {
+    fetchBeadsStatus().then(({ available }) => setIsAvailable(available))
+  }, [])
+
+  const syncTaskDetails = useCallback(
+    async (taskId: string, updates: Partial<Task>): Promise<boolean> => {
+      // Only sync if beads is available
+      if (!isAvailable) {
+        return false
+      }
+
+      // Only sync tasks that came from beads (check by ID format)
+      if (!isBeadsTask({ id: taskId } as Task)) {
+        return false
+      }
+
+      // Build beads update payload from task updates
+      const payload: BeadsUpdatePayload = {}
+
+      if (updates.title !== undefined) {
+        payload.title = updates.title
+      }
+      if (updates.description !== undefined) {
+        payload.description = updates.description
+      }
+      if (updates.priority !== undefined) {
+        payload.priority = mapKanbanPriorityToBeads(updates.priority)
+      }
+      if (updates.labels !== undefined) {
+        payload.labels = updates.labels
+      }
+      if (updates.estimate !== undefined) {
+        payload.estimate = updates.estimate
+      }
+      if (updates.assignee !== undefined) {
+        payload.assignee = updates.assignee
+      }
+
+      // Only sync if there are beads-relevant fields to update
+      if (Object.keys(payload).length === 0) {
+        return false
+      }
+
+      try {
+        await updateBeadsIssue(taskId, payload)
+        return true
+      } catch (err) {
+        console.error('Failed to sync task to beads:', err)
+        return false
+      }
+    },
+    [isAvailable]
+  )
+
+  return { syncTaskDetails, isAvailable }
 }

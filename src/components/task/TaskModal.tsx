@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { Bot, GitBranch, Trash2, MessageSquare, FileCode, History, FileText, FolderGit2, Gem } from "lucide-react"
 import { Task } from "@/types"
 import { useBoardStore } from "@/lib/store"
+import { useSyncBeadsTask } from "@/hooks/useBeadsIssues"
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ export function TaskModal() {
   const setSelectedTask = useBoardStore((state) => state.setSelectedTask)
   const updateTask = useBoardStore((state) => state.updateTask)
   const deleteTask = useBoardStore((state) => state.deleteTask)
+  const { syncTaskDetails } = useSyncBeadsTask()
 
   const task = tasks.find((t) => t.id === selectedTaskId)
   const isOpen = !!task
@@ -39,7 +41,11 @@ export function TaskModal() {
 
   const handleUpdate = (updates: Partial<Task>) => {
     if (task) {
+      // Update local state first
       updateTask(task.id, updates)
+      // Sync to beads if this is a beads-sourced task
+      // syncTaskDetails automatically checks if task is from beads
+      syncTaskDetails(task.id, updates)
     }
   }
 
