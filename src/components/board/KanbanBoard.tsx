@@ -32,12 +32,8 @@ import { Task, Column, BeadsStatusType } from '@/types'
 import { cn } from '@/lib/utils'
 import { compileQuery, filterItems } from '@/lib/bql'
 import { getColumnBeadsStatus } from '@/lib/beads/mappers'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+// Tooltips temporarily disabled to fix infinite loop issue
+// import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 export interface KanbanBoardProps {
   /** Use beads as data source instead of local state */
@@ -438,8 +434,7 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
     >
       {/* Beads Mode Toggle Bar */}
       {beadsAvailable && (
-        <TooltipProvider>
-          <div className="flex items-center gap-3 px-6 py-2 border-b border-zinc-800/50">
+        <div className="flex items-center gap-3 px-6 py-2 border-b border-zinc-800/50">
             <button
               onClick={toggleBeadsMode}
               className={cn(
@@ -460,33 +455,25 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
             {beadsMode && (
               <>
                 {/* Simplified/Full mode toggle */}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={toggleSimplifiedMode}
-                      className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
-                        beadsSimplifiedMode
-                          ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                          : "bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:text-zinc-300"
-                      )}
-                    >
-                      {beadsSimplifiedMode ? (
-                        <Columns3 className="w-3.5 h-3.5" />
-                      ) : (
-                        <LayoutGrid className="w-3.5 h-3.5" />
-                      )}
-                      {beadsSimplifiedMode ? 'Simplified' : 'Full Board'}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="max-w-xs">
-                    <p className="text-xs">
-                      {beadsSimplifiedMode
-                        ? 'Showing one column per beads status. Click to show all columns.'
-                        : 'Multiple columns map to the same beads status. Click to simplify.'}
-                    </p>
-                  </TooltipContent>
-                </Tooltip>
+                <button
+                  onClick={toggleSimplifiedMode}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                    beadsSimplifiedMode
+                      ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                      : "bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:text-zinc-300"
+                  )}
+                  title={beadsSimplifiedMode
+                    ? 'Showing one column per beads status. Click to show all columns.'
+                    : 'Multiple columns map to the same beads status. Click to simplify.'}
+                >
+                  {beadsSimplifiedMode ? (
+                    <Columns3 className="w-3.5 h-3.5" />
+                  ) : (
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                  )}
+                  {beadsSimplifiedMode ? 'Simplified' : 'Full Board'}
+                </button>
 
                 <div className="h-4 w-px bg-zinc-700" />
 
@@ -511,8 +498,7 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
                 )}
               </>
             )}
-          </div>
-        </TooltipProvider>
+        </div>
       )}
 
       {/* Main board area */}
