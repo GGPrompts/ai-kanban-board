@@ -293,22 +293,7 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 		columnContent.WriteString(styleSubdued.Render(hiddenAbove) + "\n")
 	}
 
-	// Build render order: move selected card to the end so it renders on top
-	renderOrder := make([]int, 0, endIndex-startIndex)
-	selectedIdx := -1
 	for i := startIndex; i < endIndex; i++ {
-		if colIndex == m.selectedColumn && i == m.selectedTask {
-			selectedIdx = i // Remember selected card to render last
-		} else {
-			renderOrder = append(renderOrder, i)
-		}
-	}
-	// Add selected card at end (renders on top of stack)
-	if selectedIdx >= 0 {
-		renderOrder = append(renderOrder, selectedIdx)
-	}
-
-	for renderPos, i := range renderOrder {
 		// Show drop indicator before this task if needed
 		if showDropIndicator && m.dropTargetIndex == i {
 			dropLine := strings.Repeat("-", cardWidth)
@@ -316,7 +301,7 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 		}
 
 		task := col.Tasks[i]
-		isLastVisible := renderPos == len(renderOrder)-1 // Based on render position, not data index
+		isLastVisible := i == endIndex-1
 		isSelected := colIndex == m.selectedColumn && i == m.selectedTask
 
 		// Check if this is the task being dragged
@@ -325,8 +310,11 @@ func (m Model) renderColumn(col Column, colIndex int, contentHeight int, colWidt
 		// Check if task matches filter (show as ghost if it doesn't match)
 		matchesFilter := m.taskMatchesFilter(task)
 
-		if isLastVisible {
-			// Last visible task - show full card
+		// Show full card if: last visible, OR selected (so selected card is fully visible in stack)
+		showFullCard := isLastVisible || isSelected
+
+		if showFullCard {
+			// Show full card
 			if isDragging || !matchesFilter {
 				columnContent.WriteString(renderCardGhost(task))
 			} else {
