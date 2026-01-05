@@ -66,6 +66,7 @@ interface BoardState {
   moveTask: (taskId: string, toColumnId: string, newOrder: number) => void
   reorderTasks: (columnId: string, taskIds: string[]) => void
   setSelectedTask: (id: string | null) => void
+  syncBeadsTasks: (beadsTasks: Task[]) => void
 
   // Chat actions
   addMessage: (taskId: string, message: Omit<Message, 'id'>) => void
@@ -289,6 +290,24 @@ export const useBoardStore = create<BoardState>()(
       },
 
       setSelectedTask: (id) => set({ selectedTaskId: id }),
+
+      // Sync beads tasks to store (merge with existing, beads tasks take precedence)
+      syncBeadsTasks: (beadsTasks) => {
+        set((state) => {
+          // Keep local tasks that aren't from beads, add/update beads tasks
+          const localTasks = state.tasks.filter(
+            (t) => !t.beadsMetadata?.isBeadsTask
+          )
+          // Create a map of beads tasks by ID for efficient lookup
+          const beadsTaskMap = new Map(beadsTasks.map((t) => [t.id, t]))
+          // Merge: local tasks + beads tasks (beads overwrite if same ID)
+          const merged = [
+            ...localTasks.filter((t) => !beadsTaskMap.has(t.id)),
+            ...beadsTasks,
+          ]
+          return { tasks: merged }
+        })
+      },
 
       // Chat actions
       addMessage: (taskId, messageData) => {
