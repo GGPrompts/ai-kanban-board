@@ -360,6 +360,7 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
                       key={task.id}
                       task={task}
                       columnAgent={assignedAgent}
+                      isDoneColumn={column.title.toLowerCase() === 'done'}
                     />
                   ))
                 )}
