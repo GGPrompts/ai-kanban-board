@@ -635,11 +635,8 @@ func (m Model) renderStatus() string {
 		narrowInfo = fmt.Sprintf(" [%d-%d/%d]", m.visibleColumnStart+1, endCol, len(m.board.Columns))
 	}
 
-	// Show chat hint if task is selected
-	var chatHint string
-	if task != nil {
-		chatHint = " | c Chat"
-	}
+	// Unused but kept for potential future use
+	_ = task
 
 	// Show backend indicator
 	backendHint := " [YAML]"
@@ -651,7 +648,7 @@ func (m Model) renderStatus() string {
 		}
 	}
 
-	status := fmt.Sprintf("%s | Column: %s%s%s%s%s | ? Help | B Backend | q Quit", backendHint, colName, narrowInfo, taskInfo, filterInfo, chatHint)
+	status := fmt.Sprintf("%s | %s%s%s%s | A All | ? Help | q", backendHint, colName, narrowInfo, taskInfo, filterInfo)
 
 	return styleStatus.Width(m.width).Render(status)
 }
@@ -777,43 +774,37 @@ func (m Model) renderHelpView() string {
 
 	helpContent := `
 NAVIGATION
-  arrows or h/j/k/l   Move between columns and tasks
-  Home or g           Jump to first column
-  End or G            Jump to last column
+  h/l or ←/→          Move between columns
+  j/k or ↑/↓          Move between tasks
+  g / G               Jump to first/last column
+  Click header        Jump to column
 
 ACTIONS
-  Enter or e          Open/edit selected task
-  n                   Quick-add new task
-  d                   Delete selected task
-  m                   Move task to next column
-  M                   Move task to previous column
-  c                   Chat with Claude about task (tmux popup)
-  Mouse drag          Drag & drop tasks between columns
-  Click column header Jump to that column
+  Enter / e           Edit selected task
+  n                   New task (quick-add form)
+  d                   Delete task (confirm with y)
+  m / M               Move task right/left
 
-QUICK-ADD FORM
-  Alt+T               Cycle issue type (task/bug/feature)
-  [ / ]               Cycle priority down/up (P0-P3)
-  Ctrl+S              Save and close form
-  Esc                 Cancel and close form
+QUICK-ADD FORM (when open)
+  { / }               Cycle type: task/bug/feature
+  [ / ]               Cycle priority: P0-P3
+  Tab                 Next field
+  Enter (last field)  Save
+  Esc                 Cancel
 
 VIEW
   Tab                 Toggle detail panel
   /                   Filter tasks
-  Esc                 Clear filter
-  A                   Toggle show all (include closed)
-  B                   Toggle beads/local backend
-  ?                   Toggle this help screen
+  A                   Toggle show all (incl. closed)
+  B                   Toggle beads/YAML backend
+  ?                   This help
 
-RESPONSIVE LAYOUT
-  Narrow terminals show fewer columns at once.
-  Use h/l to scroll through columns automatically.
-  Status bar shows [visible/total] column range.
+MOUSE
+  Click card          Select task
+  Drag card           Move between columns
+  Click header        Jump to column
 
-QUIT
-  q or Ctrl+C         Exit the application
-
-Press any key to return to the board...
+q to quit | Press any key to return...
 `
 
 	helpStyle := lipgloss.NewStyle().

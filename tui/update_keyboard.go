@@ -234,13 +234,25 @@ func (m Model) handleFormKeyMsg(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.saveTaskForm()
 		return m, nil
 
-	case "ctrl+t", "alt+t":
-		// Cycle issue type: task → bug → feature → task
+	case "ctrl+t", "alt+t", "}":
+		// Cycle issue type forward: task → bug → feature → task
 		switch m.formIssueType {
 		case "task":
 			m.formIssueType = "bug"
 		case "bug":
 			m.formIssueType = "feature"
+		default:
+			m.formIssueType = "task"
+		}
+		return m, nil
+
+	case "{":
+		// Cycle issue type backward: task → feature → bug → task
+		switch m.formIssueType {
+		case "task":
+			m.formIssueType = "feature"
+		case "feature":
+			m.formIssueType = "bug"
 		default:
 			m.formIssueType = "task"
 		}
