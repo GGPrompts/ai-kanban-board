@@ -324,7 +324,7 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
         <div
           ref={setDroppableRef}
           className={cn(
-            'flex-1 min-h-[200px] transition-all duration-200 relative',
+            'flex-1 min-h-0 flex flex-col transition-all duration-200 relative',
             showDropIndicator && 'bg-teal-500/5'
           )}
         >
@@ -340,7 +340,7 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
             )}
           </AnimatePresence>
 
-          <div className="flex-1 overflow-y-auto scrollbar-visible">
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-visible">
             <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
               <div className="p-2 pb-16 space-y-2">
                 {tasks.length === 0 ? (
