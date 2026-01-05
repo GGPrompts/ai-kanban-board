@@ -22,15 +22,22 @@ import {
   sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { motion } from 'framer-motion'
-import { ChevronLeft, ChevronRight, Database, HardDrive, RefreshCw, AlertCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Database, HardDrive, RefreshCw, AlertCircle, Columns3, LayoutGrid } from 'lucide-react'
 import { useBoardStore } from '@/lib/store'
 import { useBeadsIssues, useBeadsAvailable } from '@/hooks/useBeadsIssues'
 import { GraphMetricsProvider } from '@/contexts/GraphMetricsContext'
 import { KanbanColumn } from './KanbanColumn'
 import { AddColumnButton } from './AddColumnButton'
-import { Task, Column } from '@/types'
+import { Task, Column, BeadsStatusType } from '@/types'
 import { cn } from '@/lib/utils'
 import { compileQuery, filterItems } from '@/lib/bql'
+import { getColumnBeadsStatus } from '@/lib/beads/mappers'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 export interface KanbanBoardProps {
   /** Use beads as data source instead of local state */
@@ -50,6 +57,7 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [beadsMode, setBeadsMode] = useState(useBeadsSource)
+  const [beadsSimplifiedMode, setBeadsSimplifiedMode] = useState(false) // Hide redundant columns
 
   // Check if beads CLI is available
   const beadsAvailable = useBeadsAvailable()
@@ -105,7 +113,49 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
     const newMode = !beadsMode
     setBeadsMode(newMode)
     onBeadsModeChange?.(newMode)
+    // Reset simplified mode when leaving beads mode
+    if (!newMode) {
+      setBeadsSimplifiedMode(false)
+    }
   }, [beadsMode, onBeadsModeChange])
+
+  // Toggle simplified beads mode (hide redundant columns)
+  const toggleSimplifiedMode = useCallback(() => {
+    setBeadsSimplifiedMode((prev) => !prev)
+  }, [])
+
+  // Get visible columns in simplified mode - one column per beads status
+  const getVisibleColumns = useCallback((columns: Column[]): Column[] => {
+    if (!beadsMode || !beadsSimplifiedMode) {
+      return columns
+    }
+
+    // In simplified mode, show only one column per beads status (the first one by order)
+    const seen = new Set<BeadsStatusType>()
+    const visible: Column[] = []
+
+    // Sort by order first
+    const sorted = [...columns].sort((a, b) => a.order - b.order)
+
+    for (const column of sorted) {
+      const status = getColumnBeadsStatus(column)
+      // Also respect explicit isHiddenInBeadsMode flag
+      if (column.isHiddenInBeadsMode) continue
+      if (!seen.has(status)) {
+        seen.add(status)
+        visible.push(column)
+      }
+    }
+
+    return visible
+  }, [beadsMode, beadsSimplifiedMode])
+
+  // Get columns that are grouped with a given column (same beads status)
+  const getGroupedColumns = useCallback((column: Column): Column[] => {
+    if (!board || !beadsMode) return []
+    const status = getColumnBeadsStatus(column)
+    return board.columns.filter((c) => c.id !== column.id && getColumnBeadsStatus(c) === status)
+  }, [board, beadsMode])
 
   // Wait for hydration to complete before rendering dynamic content
   useEffect(() => {
@@ -328,7 +378,8 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
   }
 
   const sortedColumns = [...board.columns].sort((a, b) => a.order - b.order)
-  const columnIds = sortedColumns.map((c) => c.id)
+  const visibleColumns = getVisibleColumns(sortedColumns)
+  const columnIds = visibleColumns.map((c) => c.id)
 
   return (
     <motion.div
@@ -339,48 +390,81 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
     >
       {/* Beads Mode Toggle Bar */}
       {beadsAvailable && (
-        <div className="flex items-center gap-3 px-6 py-2 border-b border-zinc-800/50">
-          <button
-            onClick={toggleBeadsMode}
-            className={cn(
-              "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
-              beadsMode
-                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                : "bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:text-zinc-300"
-            )}
-          >
-            {beadsMode ? (
-              <Database className="w-3.5 h-3.5" />
-            ) : (
-              <HardDrive className="w-3.5 h-3.5" />
-            )}
-            {beadsMode ? 'Beads Issues' : 'Local Tasks'}
-          </button>
-
-          {beadsMode && (
-            <>
-              <button
-                onClick={() => refreshBeads()}
-                disabled={beadsLoading}
-                className={cn(
-                  "flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-all",
-                  "text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50",
-                  beadsLoading && "opacity-50 cursor-not-allowed"
-                )}
-              >
-                <RefreshCw className={cn("w-3.5 h-3.5", beadsLoading && "animate-spin")} />
-                Refresh
-              </button>
-
-              {beadsError && (
-                <div className="flex items-center gap-1.5 text-xs text-red-400">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {beadsError}
-                </div>
+        <TooltipProvider>
+          <div className="flex items-center gap-3 px-6 py-2 border-b border-zinc-800/50">
+            <button
+              onClick={toggleBeadsMode}
+              className={cn(
+                "flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+                beadsMode
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : "bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:text-zinc-300"
               )}
-            </>
-          )}
-        </div>
+            >
+              {beadsMode ? (
+                <Database className="w-3.5 h-3.5" />
+              ) : (
+                <HardDrive className="w-3.5 h-3.5" />
+              )}
+              {beadsMode ? 'Beads Issues' : 'Local Tasks'}
+            </button>
+
+            {beadsMode && (
+              <>
+                {/* Simplified/Full mode toggle */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={toggleSimplifiedMode}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                        beadsSimplifiedMode
+                          ? "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                          : "bg-zinc-800/50 text-zinc-400 border border-zinc-700/50 hover:text-zinc-300"
+                      )}
+                    >
+                      {beadsSimplifiedMode ? (
+                        <Columns3 className="w-3.5 h-3.5" />
+                      ) : (
+                        <LayoutGrid className="w-3.5 h-3.5" />
+                      )}
+                      {beadsSimplifiedMode ? 'Simplified' : 'Full Board'}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="text-xs">
+                      {beadsSimplifiedMode
+                        ? 'Showing one column per beads status. Click to show all columns.'
+                        : 'Multiple columns map to the same beads status. Click to simplify.'}
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <div className="h-4 w-px bg-zinc-700" />
+
+                <button
+                  onClick={() => refreshBeads()}
+                  disabled={beadsLoading}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-all",
+                    "text-zinc-400 hover:text-zinc-300 hover:bg-zinc-800/50",
+                    beadsLoading && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <RefreshCw className={cn("w-3.5 h-3.5", beadsLoading && "animate-spin")} />
+                  Refresh
+                </button>
+
+                {beadsError && (
+                  <div className="flex items-center gap-1.5 text-xs text-red-400">
+                    <AlertCircle className="w-3.5 h-3.5" />
+                    {beadsError}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </TooltipProvider>
       )}
 
       {/* Main board area */}
@@ -432,13 +516,21 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
           >
             <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
               <div className="flex gap-4 h-full pb-4">
-                {sortedColumns.map((column) => (
-                  <KanbanColumn
-                    key={column.id}
-                    column={column}
-                    tasks={getEffectiveTasksByColumn(column)}
-                  />
-                ))}
+                {visibleColumns.map((column) => {
+                  const groupedWith = getGroupedColumns(column)
+                  const beadsStatus = beadsMode ? getColumnBeadsStatus(column) : undefined
+
+                  return (
+                    <KanbanColumn
+                      key={column.id}
+                      column={column}
+                      tasks={getEffectiveTasksByColumn(column)}
+                      beadsMode={beadsMode}
+                      beadsStatus={beadsStatus}
+                      groupedColumns={beadsMode && groupedWith.length > 0 ? groupedWith : undefined}
+                    />
+                  )
+                })}
 
                 {/* Add Column Button */}
                 <AddColumnButton />

@@ -4,7 +4,7 @@
  */
 
 import type { BeadsIssue, BeadsStatus, BeadsPriority } from './types'
-import type { Task, Priority, Column } from '@/types'
+import type { Task, Priority, Column, BeadsStatusType } from '@/types'
 
 /**
  * Map beads priority to kanban priority
@@ -208,4 +208,103 @@ export function groupIssuesByColumn(
  */
 export function isBeadsTask(task: Task): boolean {
   return /^[a-z]+-[a-z0-9]+$/i.test(task.id)
+}
+
+/**
+ * Beads status metadata for display
+ */
+export const BEADS_STATUS_META: Record<BeadsStatusType, {
+  label: string
+  shortLabel: string
+  color: string
+  bgColor: string
+  borderColor: string
+  description: string
+}> = {
+  open: {
+    label: 'Open',
+    shortLabel: 'Open',
+    color: 'text-cyan-400',
+    bgColor: 'bg-cyan-500/20',
+    borderColor: 'border-cyan-500/50',
+    description: 'Not started - in backlog or ready to work',
+  },
+  in_progress: {
+    label: 'In Progress',
+    shortLabel: 'Working',
+    color: 'text-amber-400',
+    bgColor: 'bg-amber-500/20',
+    borderColor: 'border-amber-500/50',
+    description: 'Currently being worked on',
+  },
+  blocked: {
+    label: 'Blocked',
+    shortLabel: 'Blocked',
+    color: 'text-red-400',
+    bgColor: 'bg-red-500/20',
+    borderColor: 'border-red-500/50',
+    description: 'Waiting on dependencies or external factors',
+  },
+  closed: {
+    label: 'Closed',
+    shortLabel: 'Done',
+    color: 'text-green-400',
+    bgColor: 'bg-green-500/20',
+    borderColor: 'border-green-500/50',
+    description: 'Completed or resolved',
+  },
+}
+
+/**
+ * Get the beads status for a column.
+ * Uses explicit beadsStatus if set, otherwise infers from column title.
+ */
+export function getColumnBeadsStatus(column: Column): BeadsStatusType {
+  // Use explicit beads status if set
+  if (column.beadsStatus) {
+    return column.beadsStatus
+  }
+
+  // Otherwise infer from column title
+  const title = (column.title ?? '').toLowerCase()
+
+  if (title.includes('done') || title.includes('complete') || title.includes('closed') || title.includes('deployed')) {
+    return 'closed'
+  }
+  if (title.includes('progress') || title.includes('working') || title.includes('active') || title.includes('review') || title.includes('ai ') || title.includes('test')) {
+    return 'in_progress'
+  }
+  if (title.includes('blocked') || title.includes('stuck')) {
+    return 'blocked'
+  }
+  // Default: backlog, ready, ideas, triage, spec, etc. are all "open"
+  return 'open'
+}
+
+/**
+ * Group columns by their beads status for visual grouping
+ */
+export function groupColumnsByBeadsStatus(columns: Column[]): Map<BeadsStatusType, Column[]> {
+  const groups = new Map<BeadsStatusType, Column[]>([
+    ['open', []],
+    ['in_progress', []],
+    ['blocked', []],
+    ['closed', []],
+  ])
+
+  for (const column of columns) {
+    const status = getColumnBeadsStatus(column)
+    const group = groups.get(status) ?? []
+    group.push(column)
+    groups.set(status, group)
+  }
+
+  return groups
+}
+
+/**
+ * Check if two columns map to the same beads status
+ */
+export function columnsSameBeadsStatus(a: Column, b: Column): boolean {
+  return getColumnBeadsStatus(a) === getColumnBeadsStatus(b)
 }
