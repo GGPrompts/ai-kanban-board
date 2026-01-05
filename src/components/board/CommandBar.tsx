@@ -18,12 +18,8 @@ import {
 import { useBoardStore } from '@/lib/store'
 import { AgentType, AgentStatus, AGENT_META, AGENT_STATUS_META } from '@/types'
 import { cn } from '@/lib/utils'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+// Tooltips temporarily disabled to fix infinite loop issue
+// import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { BoardSettingsDialog } from './BoardSettingsDialog'
 
 // Icon mapping for agent types
@@ -89,7 +85,7 @@ export function CommandBar() {
   const totalAgents = agentSummaries.reduce((sum, s) => sum + s.count, 0)
 
   return (
-    <TooltipProvider>
+    <>
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -140,16 +136,12 @@ export function CommandBar() {
 
             {/* Add more agents placeholder */}
             {agentSummaries.length > 0 && agentSummaries.length < 3 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button className="size-7 rounded-full border border-dashed border-zinc-700 flex items-center justify-center text-zinc-600 hover:border-teal-500/50 hover:text-teal-500 transition-colors">
-                    <Bot className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p className="text-xs">Assign agents to columns</p>
-                </TooltipContent>
-              </Tooltip>
+              <button
+                className="size-7 rounded-full border border-dashed border-zinc-700 flex items-center justify-center text-zinc-600 hover:border-teal-500/50 hover:text-teal-500 transition-colors"
+                title="Assign agents to columns"
+              >
+                <Bot className="h-3.5 w-3.5" />
+              </button>
             )}
           </div>
 
@@ -169,25 +161,19 @@ export function CommandBar() {
 
             <div className="h-4 w-px bg-zinc-700" />
 
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setSettingsOpen(true)}
-                  className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
-                >
-                  <Settings2 className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs">Board settings</p>
-              </TooltipContent>
-            </Tooltip>
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="p-1.5 rounded hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
+              title="Board settings"
+            >
+              <Settings2 className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </motion.div>
 
       <BoardSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
-    </TooltipProvider>
+    </>
   )
 }
 
@@ -195,67 +181,46 @@ function AgentChip({ summary }: { summary: AgentSummary }) {
   const meta = AGENT_META[summary.type]
   const IconComponent = AGENT_ICONS[meta.icon] || Bot
 
-  const statusColor = summary.running > 0
-    ? 'border-emerald-500/50 bg-emerald-500/10'
-    : summary.failed > 0
-      ? 'border-red-500/50 bg-red-500/10'
-      : 'border-zinc-700 bg-zinc-800/50'
+  const tooltipText = `${meta.label}: ${summary.count} task${summary.count !== 1 ? 's' : ''}${summary.running > 0 ? `, ${summary.running} running` : ''}${summary.failed > 0 ? `, ${summary.failed} failed` : ''}`
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className={cn(
-            "agent-chip cursor-pointer",
-            meta.bgColor,
-            meta.borderColor,
-            summary.running > 0 && "animate-pulse-glow"
-          )}
-        >
-          <IconComponent className={cn("h-3.5 w-3.5", meta.color)} />
-          <span className={cn("font-medium", meta.color)}>
-            {meta.shortLabel}
-          </span>
+    <motion.div
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      className={cn(
+        "agent-chip cursor-pointer",
+        meta.bgColor,
+        meta.borderColor,
+        summary.running > 0 && "animate-pulse-glow"
+      )}
+      title={tooltipText}
+    >
+      <IconComponent className={cn("h-3.5 w-3.5", meta.color)} />
+      <span className={cn("font-medium", meta.color)}>
+        {meta.shortLabel}
+      </span>
 
-          {/* Status indicators */}
-          <div className="flex items-center gap-1 ml-1">
-            {summary.running > 0 && (
-              <div className="flex items-center gap-0.5">
-                <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500 status-running" />
-                <span className="text-emerald-400">{summary.running}</span>
-              </div>
-            )}
-            {summary.idle > 0 && summary.running === 0 && (
-              <div className="flex items-center gap-0.5">
-                <Circle className="h-2 w-2 fill-zinc-500 text-zinc-500" />
-                <span className="text-zinc-500">{summary.idle}</span>
-              </div>
-            )}
-            {summary.failed > 0 && (
-              <div className="flex items-center gap-0.5">
-                <Circle className="h-2 w-2 fill-red-500 text-red-500" />
-                <span className="text-red-400">{summary.failed}</span>
-              </div>
-            )}
+      {/* Status indicators */}
+      <div className="flex items-center gap-1 ml-1">
+        {summary.running > 0 && (
+          <div className="flex items-center gap-0.5">
+            <Circle className="h-2 w-2 fill-emerald-500 text-emerald-500 status-running" />
+            <span className="text-emerald-400">{summary.running}</span>
           </div>
-        </motion.div>
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="glass-overlay">
-        <div className="text-xs space-y-1">
-          <p className="font-medium">{meta.label}</p>
-          <div className="flex gap-3 text-zinc-400">
-            <span>{summary.count} task{summary.count !== 1 ? 's' : ''}</span>
-            {summary.running > 0 && (
-              <span className="text-emerald-400">{summary.running} running</span>
-            )}
-            {summary.failed > 0 && (
-              <span className="text-red-400">{summary.failed} failed</span>
-            )}
+        )}
+        {summary.idle > 0 && summary.running === 0 && (
+          <div className="flex items-center gap-0.5">
+            <Circle className="h-2 w-2 fill-zinc-500 text-zinc-500" />
+            <span className="text-zinc-500">{summary.idle}</span>
           </div>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+        )}
+        {summary.failed > 0 && (
+          <div className="flex items-center gap-0.5">
+            <Circle className="h-2 w-2 fill-red-500 text-red-500" />
+            <span className="text-red-400">{summary.failed}</span>
+          </div>
+        )}
+      </div>
+    </motion.div>
   )
 }
