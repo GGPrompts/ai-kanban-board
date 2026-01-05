@@ -82,6 +82,21 @@ func (m Model) handleMousePress(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	m.dragStartTime = time.Now()
 	m.mouseHeldDown = true
 
+	// Check for column header click (Y=1, after title bar at Y=0)
+	const columnHeaderY = 1
+	if msg.Y == columnHeaderY {
+		colIndex := m.getColumnAtPosition(msg.X, msg.Y)
+		if colIndex >= 0 && colIndex < len(m.board.Columns) {
+			// Select this column and move to first task
+			m.selectedColumn = colIndex
+			m.selectedTask = 0
+			m.ensureSelectedColumnVisible()
+			m.updateScrollOffset()
+			m.fetchIssueDetails()
+		}
+		return m, nil
+	}
+
 	// Get column
 	colIndex := m.getColumnAtPosition(msg.X, msg.Y)
 	if colIndex == -1 {
@@ -151,13 +166,43 @@ func (m Model) handleMouseRelease(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 }
 
 // getColumnAtPosition returns the column index at the given screen position
+// Handles narrow mode where only a subset of columns are visible
 func (m Model) getColumnAtPosition(x, y int) int {
 	if len(m.board.Columns) == 0 {
 		return -1
 	}
 
-	colWidth := m.boardWidth / len(m.board.Columns)
-	colIndex := x / colWidth
+	// Get visible column range
+	startCol, _, visibleCount := m.getVisibleColumnRange()
+
+	// Calculate column width based on visible columns
+	colWidth := m.boardWidth / visibleCount
+
+	// In narrow mode with scroll indicators, account for indicator widths
+	// Only adjust when there's a left indicator (which implies both indicators)
+	xOffset := 0
+	if m.narrowMode && m.visibleColumnStart > 0 {
+		indicatorWidth := 5
+		colWidth = (m.boardWidth - 10) / visibleCount // Adjust for both indicators
+		xOffset = indicatorWidth                      // Skip left indicator
+	}
+	// Note: When only right indicator exists (at start, can scroll right),
+	// colWidth stays at boardWidth/visibleCount to match view.go rendering
+
+	// Calculate which visible column was clicked
+	adjustedX := x - xOffset
+	if adjustedX < 0 {
+		return -1 // Clicked on left scroll indicator
+	}
+
+	visibleColIndex := adjustedX / colWidth
+
+	if visibleColIndex < 0 || visibleColIndex >= visibleCount {
+		return -1
+	}
+
+	// Convert to actual column index
+	colIndex := startCol + visibleColIndex
 
 	if colIndex < 0 || colIndex >= len(m.board.Columns) {
 		return -1

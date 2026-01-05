@@ -789,6 +789,7 @@ ACTIONS
   M                   Move task to previous column
   c                   Chat with Claude about task (tmux popup)
   Mouse drag          Drag & drop tasks between columns
+  Click column header Jump to that column
 
 QUICK-ADD FORM
   Alt+T               Cycle issue type (task/bug/feature)
