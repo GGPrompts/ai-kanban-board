@@ -46,6 +46,22 @@ export interface KanbanBoardProps {
   onBeadsModeChange?: (enabled: boolean) => void
 }
 
+// localStorage keys for persisting board preferences
+const STORAGE_KEY_BEADS_MODE = 'kanban-beads-mode'
+const STORAGE_KEY_SIMPLIFIED_MODE = 'kanban-beads-simplified'
+
+// Helper to safely read from localStorage (SSR-safe)
+function getStoredBoolean(key: string, fallback: boolean): boolean {
+  if (typeof window === 'undefined') return fallback
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored === null) return fallback
+    return stored === 'true'
+  } catch {
+    return fallback
+  }
+}
+
 export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: KanbanBoardProps) {
   const { getCurrentBoard, tasks: localTasks, moveTask, reorderTasks, reorderColumns, getTasksByColumn } = useBoardStore()
   const board = getCurrentBoard()
@@ -57,7 +73,29 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
   const [beadsMode, setBeadsMode] = useState(useBeadsSource)
-  const [beadsSimplifiedMode, setBeadsSimplifiedMode] = useState(false) // Hide redundant columns
+  const [beadsSimplifiedMode, setBeadsSimplifiedMode] = useState(false)
+
+  // Load persisted preferences after mount (SSR-safe)
+  useEffect(() => {
+    const storedBeadsMode = getStoredBoolean(STORAGE_KEY_BEADS_MODE, useBeadsSource)
+    const storedSimplifiedMode = getStoredBoolean(STORAGE_KEY_SIMPLIFIED_MODE, false)
+    setBeadsMode(storedBeadsMode)
+    setBeadsSimplifiedMode(storedSimplifiedMode)
+  }, [useBeadsSource])
+
+  // Persist beadsMode changes
+  useEffect(() => {
+    if (hasMounted) {
+      localStorage.setItem(STORAGE_KEY_BEADS_MODE, String(beadsMode))
+    }
+  }, [beadsMode, hasMounted])
+
+  // Persist beadsSimplifiedMode changes
+  useEffect(() => {
+    if (hasMounted) {
+      localStorage.setItem(STORAGE_KEY_SIMPLIFIED_MODE, String(beadsSimplifiedMode))
+    }
+  }, [beadsSimplifiedMode, hasMounted])
 
   // Check if beads CLI is available
   const beadsAvailable = useBeadsAvailable()
