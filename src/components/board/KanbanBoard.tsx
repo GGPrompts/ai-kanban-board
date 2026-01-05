@@ -517,7 +517,8 @@ export function KanbanBoard({ useBeadsSource = false, onBeadsModeChange }: Kanba
             <SortableContext items={columnIds} strategy={horizontalListSortingStrategy}>
               <div className="flex gap-4 h-full pb-4">
                 {visibleColumns.map((column) => {
-                  const groupedWith = getGroupedColumns(column)
+                  // In simplified mode, don't show grouped columns badge (they're hidden)
+                  const groupedWith = beadsSimplifiedMode ? [] : getGroupedColumns(column)
                   const beadsStatus = beadsMode ? getColumnBeadsStatus(column) : undefined
 
                   return (
