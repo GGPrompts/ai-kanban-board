@@ -10,6 +10,9 @@ export interface Board {
   updatedAt: Date
 }
 
+// Beads status types for column mapping
+export type BeadsStatusType = 'open' | 'in_progress' | 'blocked' | 'closed'
+
 export interface Column {
   id: string
   title: string
@@ -17,6 +20,10 @@ export interface Column {
   order: number
   wipLimit?: number // Work-in-progress limit
   isCollapsed?: boolean
+  isHiddenInBeadsMode?: boolean // Hide this column in beads simplified mode
+
+  // Beads integration
+  beadsStatus?: BeadsStatusType // Explicit beads status this column maps to
 
   // BQL (Beads Query Language) for dynamic filtering
   bqlQuery?: string // e.g., "status:open AND priority:1-2"

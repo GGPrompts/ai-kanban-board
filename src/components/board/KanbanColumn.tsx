@@ -23,9 +23,10 @@ import {
   GripVertical,
   Filter,
 } from 'lucide-react'
-import { Column, Task, AgentType, AGENT_META, AGENT_STATUS_META } from '@/types'
+import { Column, Task, AgentType, BeadsStatusType, AGENT_META, AGENT_STATUS_META } from '@/types'
 import { useBoardStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { BEADS_STATUS_META } from '@/lib/beads/mappers'
 import { AddTaskButton } from './AddTaskButton'
 import { KanbanCard } from './KanbanCard'
 import { ColumnConfigDialog } from './ColumnConfigDialog'
@@ -58,9 +59,21 @@ const AGENT_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 interface KanbanColumnProps {
   column: Column
   tasks: Task[]
+  /** Whether beads mode is active */
+  beadsMode?: boolean
+  /** The beads status this column maps to */
+  beadsStatus?: BeadsStatusType
+  /** Other columns that share the same beads status (for grouping indicator) */
+  groupedColumns?: Column[]
 }
 
-export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
+export function KanbanColumn({
+  column,
+  tasks,
+  beadsMode,
+  beadsStatus,
+  groupedColumns,
+}: KanbanColumnProps) {
   // Sortable for column reordering
   const {
     attributes,
@@ -109,6 +122,9 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
 
   // Count running tasks in this column
   const runningTasks = tasks.filter((t) => t.agent?.status === 'running').length
+
+  // Beads status metadata
+  const beadsStatusMeta = beadsStatus ? BEADS_STATUS_META[beadsStatus] : null
 
   // Get the accent color based on assigned agent or column color
   const accentColor = agentMeta
@@ -235,6 +251,44 @@ export function KanbanColumn({ column, tasks }: KanbanColumnProps) {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="text-xs">{runningTasks} agent{runningTasks !== 1 ? 's' : ''} running</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+
+              {/* Beads status badge */}
+              {beadsMode && beadsStatusMeta && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium",
+                        beadsStatusMeta.bgColor,
+                        beadsStatusMeta.color,
+                        "border",
+                        beadsStatusMeta.borderColor
+                      )}
+                    >
+                      <span>{beadsStatusMeta.shortLabel}</span>
+                      {groupedColumns && groupedColumns.length > 0 && (
+                        <span className="opacity-60">+{groupedColumns.length}</span>
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium">{beadsStatusMeta.label}</p>
+                      <p className="text-[10px] text-zinc-400">{beadsStatusMeta.description}</p>
+                      {groupedColumns && groupedColumns.length > 0 && (
+                        <div className="pt-1 border-t border-zinc-700 mt-1">
+                          <p className="text-[10px] text-zinc-500">
+                            Same status as: {groupedColumns.map((c) => c.title).join(', ')}
+                          </p>
+                          <p className="text-[10px] text-amber-400 mt-0.5">
+                            Moving between these columns won&apos;t change beads status
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </TooltipContent>
                 </Tooltip>
               )}
