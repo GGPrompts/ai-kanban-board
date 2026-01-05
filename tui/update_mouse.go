@@ -113,7 +113,7 @@ func (m Model) handleMousePress(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 	}
 
 	// Calculate which task was clicked
-	const taskAreaStartY = 3
+	const taskAreaStartY = 2
 	relY := msg.Y - taskAreaStartY
 	taskIndex := m.getTaskIndexInColumn(col, relY)
 
@@ -293,7 +293,7 @@ func (m Model) getDropPosition(x, y int) (int, int) {
 	col := m.board.Columns[colIndex]
 
 	// Calculate insert position
-	const taskAreaStartY = 3
+	const taskAreaStartY = 2
 	relY := y - taskAreaStartY
 
 	if len(col.Tasks) == 0 {
