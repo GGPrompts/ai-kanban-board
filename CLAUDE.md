@@ -150,29 +150,7 @@ const COLUMN_PRESETS = {
 
 ---
 
-## Parallel Worker Patterns
-
-When spawning multiple Claude workers via conductor:
-
-**Use git worktrees** - Workers in same directory cause conflicts:
-```bash
-git worktree add ../ai-kanban-board-feature branch-name
-# Spawn worker with workingDir pointing to worktree
-```
-
-**Common worker issues observed:**
-1. **Prompt doesn't submit** - Always use `sleep 0.3` before `C-m`
-2. **Worker finishes but doesn't close issue** - Nudge with explicit `bd close` command
-3. **Worker sits idle after commit** - May need reminder to close beads issue
-4. **Workers conflict on same files** - Use worktrees for parallel work
-
-**Nudging idle workers:**
-```bash
-# If worker has uncommitted changes but is idle
-tmux send-keys -t "$SESSION" "npm run build && git add . && git commit -m 'message' && bd close ISSUE-ID --reason 'done'" Enter
-```
-
-### Beads Workflow
+## Beads Workflow
 
 | Command | Purpose |
 |---------|---------|
@@ -181,5 +159,3 @@ tmux send-keys -t "$SESSION" "npm run build && git add . && git commit -m 'messa
 | `bd update <id> --status in_progress` | Claim issue |
 | `bd close <id> --reason "..."` | Complete issue |
 | `bd sync` | Sync with git remote |
-| `/bd-swarm` | Spawn parallel workers |
-| `/bd-status` | Show issue tracker overview |
