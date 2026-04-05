@@ -44,3 +44,4 @@ tui/ai-kanban-board-tui
 # TUI binaries
 tui/ai-kanban-tui
 tui/ai-kanban-board-tui
+.beads/metadata.json
